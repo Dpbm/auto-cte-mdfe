@@ -1,0 +1,9 @@
+info:
+	numero DANFE --> cobr -> fat -> nFat
+	NOME/razao social -> dest -> xNome
+	transportadora -> transp -> transportadora -> xNome
+	carga numero -> infAdic -> infCpl
+	CUBICAGEM -> infAdic -> infCpl
+	QUANTIDADE -> transp -> vol -> qVol
+
+	chave de acesso NFE -> nfeProc -> protNFe -> infProt -> chNFe
