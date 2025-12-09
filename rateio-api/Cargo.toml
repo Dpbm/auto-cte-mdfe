@@ -1,9 +1,7 @@
 [package]
-name = "rateio"
+name = "rateio-api"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-quick-xml = "0.38.4"
-regex = "1.12.2"
-
+rateio = { path = "../rateio/" }

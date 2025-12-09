@@ -1,0 +1,8 @@
+*
+!rateio/
+!rateio-api/
+rateio/data/
+rateio/data.txt
+rateio/target/
+rateio-api/target/
+
