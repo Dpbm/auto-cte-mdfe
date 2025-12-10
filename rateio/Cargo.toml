@@ -6,4 +6,4 @@ edition = "2024"
 [dependencies]
 quick-xml = "0.38.4"
 regex = "1.12.2"
-
+serde = { version = "1.0", features = ["derive"] }

@@ -5,6 +5,7 @@ use actix_web::{web, get, App, HttpResponse, HttpServer, Responder};
 
 use rateio::data::parse_multiple;
 use rateio::files::get_xml_files;
+use rateio::types::Loads;
 
 type PortNumber = u16;
 
@@ -15,8 +16,10 @@ struct DataState{
 #[get("/data")]
 async fn get_data(data:web::Data<DataState>) -> impl Responder {
     let path = data.data_path.clone();
-    let xml_files = get_xml_files(path);
-    HttpResponse::Ok().body(pat)
+    let xml_files = get_xml_files(&path);
+    let mut loads = Loads::new();
+    parse_multiple(&xml_files, &mut loads);
+    web::Json(loads)
 }
 
 #[get("/health")]

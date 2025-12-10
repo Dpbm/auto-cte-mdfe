@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
+
 pub type TagName<'a> = &'a [u8];
 
 pub type LoadNumber = u32;
 pub type Cubicage = f32;
 
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct Data {
     pub danfe: String,
     pub to: String,
@@ -16,7 +19,7 @@ pub struct Data {
     pub quantity: u16
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct Loads{
     pub data: HashMap<LoadNumber, Vec<Data>>
 }
