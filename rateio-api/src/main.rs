@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 use actix_web::{web, get, head, App, HttpResponse, HttpServer, Responder};
 
-use rateio::data::parse_multiple;
+use rateio::data::{parse_multiple, parse_email, merge_data};
 use rateio::files::get_xml_files;
-use rateio::types::Loads;
+use rateio::types::Packet;
 
 type PortNumber = u16;
 
@@ -14,12 +14,19 @@ struct DataState{
 }
 
 #[get("/data")]
-async fn get_data(data:web::Data<DataState>) -> impl Responder {
+async fn get_data(data:web::Data<DataState>, body:String) -> impl Responder {
     let path = data.data_path.clone();
+
+    let email_data = parse_email(&body);
     let xml_files = get_xml_files(&path);
-    let mut loads = Loads::new();
-    parse_multiple(&xml_files, &mut loads);
-    web::Json(loads)
+
+    let mut packet = Packet::default();
+    packet.email_data = email_data;
+
+    parse_multiple(&xml_files, &mut packet.loads);
+    merge_data(&mut packet);
+
+    web::Json(packet)
 }
 
 #[head("/health")]

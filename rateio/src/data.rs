@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-use regex::Regex;
 use quick_xml::reader::Reader;
 use quick_xml::events::{Event,BytesText};
 
 use crate::types::*;
 use crate::constants::*;
+use crate::pattern;
 
 fn update_flag(flags:&mut u8, flag:u8){
     *flags ^= flag;
@@ -71,18 +71,31 @@ fn generate_flags() -> (u8, u8){
      */
 
     (flags, backtrack)
-    
 }
 
+pub fn parse_email(email_text:&String) -> EmailData{
+    let pattern_email = pattern::text::email_text();
+    let mut data = HashMap::new();
 
+    for (_, [load_number, license_plate, price]) in pattern_email.captures_iter(email_text.to_lowercase().as_str()).map(|cap| cap.extract()){
+        let load_number_parsed = load_number.parse::<LoadNumber>().expect("Failed on convert load number to number");
+        data.insert(
+            load_number_parsed,
+            EmailLoadData{
+                load_number: load_number_parsed,
+                price: price.replace(".","").replace(",",".").parse::<Price>().expect("Failed on convert price to float"),
+                license_plate: license_plate.to_string()
+            }
+        );
+    }
+
+    data
+}
 
 pub fn parse_file(file:&PathBuf) -> Data{
     let mut reader = Reader::from_file(file).expect("Failed on open reader for file");
     reader.config_mut().trim_text(true);
 
-    let pattern_load = Regex::new(r"carga *:* *([0-9]+)").unwrap();
-    let pattern_cubicage = Regex::new(r"cubicagem *:* *([0-9]+,[0-9]+) *m3").unwrap();
-    
     let (mut flags, mut backtrack) = generate_flags();
 
     let mut tmp_data = HashMap::new();
@@ -102,16 +115,22 @@ pub fn parse_file(file:&PathBuf) -> Data{
         }
         buffer.clear();
     }
+    
+    let pattern_load = pattern::xml::load();
+    let pattern_cubicage = pattern::xml::cubicage();
 
     let info = tmp_data["info"].to_lowercase();
-    let load_number = pattern_load.captures(&info).unwrap().get(1).unwrap().as_str().parse::<u32>().unwrap();
-    let cubicage = pattern_cubicage.captures(&info).unwrap().get(1).unwrap().as_str().replace(",",".").parse::<f32>().unwrap(); Data {
+    let load_number = pattern_load.captures(&info).unwrap().get(1).unwrap().as_str().parse::<LoadNumber>().unwrap();
+    let cubicage = pattern_cubicage.captures(&info).unwrap().get(1).unwrap().as_str().replace(",",".").parse::<Cubicage>().unwrap(); 
+
+    Data {
         danfe: tmp_data["danfe"].clone(),
         to: tmp_data["to"].clone(),
         by: tmp_data["by"].clone(),
         quantity: tmp_data["quantity"].parse::<u16>().unwrap(),
         load_number: load_number,
-        cubicage: cubicage
+        cubicage: cubicage,
+        ..Default::default()
     }
 }
 
@@ -119,11 +138,34 @@ pub fn parse_multiple(files:&Vec<PathBuf>, all_data:&mut Loads){
     for file in files.iter(){
         let data = parse_file(&file);
         
-        if !all_data.data.contains_key(&data.load_number){
-            all_data.data.insert(data.load_number, Vec::new());
+        if !all_data.contains_key(&data.load_number){
+            let mut new_load = Load::default();
+            new_load.data.push(data.clone());
+            all_data.insert(data.load_number, new_load);
+            continue;
         }
-        if let Some(load) = all_data.data.get_mut(&data.load_number) { load.push(data) }
+
+
+        if let Some(load) = all_data.get_mut(&data.load_number) { load.data.push(data.clone()) }
     }
 }
 
+pub fn merge_data(packet:&mut Packet){
+    for (key,val) in &packet.email_data{
+        match packet.loads.get_mut(key){
+            Some(load) => {
+                let total_price = val.price;
 
+                load.license_plate = val.license_plate.clone();
+                load.total_price = total_price;
+
+                let total_cubicage = load.calculate_total_cubicage();
+
+                load.data.iter_mut().for_each(|item| item.calculate_shipping_price(total_price, total_cubicage) );
+            }
+            None => {
+                packet.errors.push(String::from(format!("Failed on get load number: {}",key)));
+            }
+        }
+    }
+}
