@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use actix_web::{web, get, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, get, head, App, HttpResponse, HttpServer, Responder};
 
 use rateio::data::parse_multiple;
 use rateio::files::get_xml_files;
@@ -22,7 +22,7 @@ async fn get_data(data:web::Data<DataState>) -> impl Responder {
     web::Json(loads)
 }
 
-#[get("/health")]
+#[head("/health")]
 async fn health() -> impl Responder {
     HttpResponse::Ok().body("OK")
 }

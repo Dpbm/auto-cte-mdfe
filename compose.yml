@@ -1,0 +1,10 @@
+services:
+  rateio:
+    container_name: "rateio"
+    build:
+      context: .
+      dockerfile: rateio.Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./rateio/data/:/data/:ro

@@ -1,7 +1,11 @@
-.PHONY: build-dockerfile clean-docker
+.PHONY: start-docker stop-docker
 
-clean-docker:
-	docker image rm $(NAME) -f
+stop-docker:
+	@echo "Stopping docker compose..."
+	docker compose down
 
-build-dockerfile: clean-docker
-	docker build --no-cache -t $(NAME) --file $(NAME).Dockerfile .
+start-docker: stop-docker
+	@echo "Starting docker compose..."
+	docker compose up -d --build --force-recreate
+
+
