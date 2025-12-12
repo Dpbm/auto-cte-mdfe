@@ -6,5 +6,33 @@ services:
       dockerfile: rateio.Dockerfile
     ports:
       - "4000:4000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rateio.rule=PathPrefix(`/rateio`)"
+      - "traefik.http.routers.rateio.entrypoints=web"
+      - "traefik.http.services.rateio.loadbalancer.server.port=4000"
+      - "traefik.http.middlewares.rateio-strip.stripprefix.prefixes=/rateio"
+      - "traefik.http.routers.rateio.middlewares=rateio-strip"
     volumes:
       - ./rateio/data/:/data/:ro
+    networks:
+      - proxy
+
+  traefik:
+    image: traefik:v3.4
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "3500:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/settings.yaml:/traefik.yml:ro
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: false
