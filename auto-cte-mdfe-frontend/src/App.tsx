@@ -41,14 +41,18 @@ type DataShowProps = {
 };
 
 const DataShow = ({data,error}:DataShowProps) => {
-  if(error) return <p>Falha erro: {error}</p>;
+  if(error) return <p className="text-4xl text-red-600 p-10">Erro: {error}</p>;
 
   const loads : LoadData | null = !data ? null : data.loads;
-  if(!loads) return <p>Nenhum valor a mostrar</p>;
-      console.log(loads);
+  if(!loads) return <p className="text-4xl p-10">Nenhum valor a mostrar</p>;
 
   const loadsNumbers = Object.keys(loads);
 
+  const loadsByTransp = {};
+
+  for(const load of Object.values(loads)){
+    if(loadsByTransp[load.data.])
+  }
 
   return <>
     {loadsNumbers.map((loadNumber) => {
@@ -59,8 +63,8 @@ const DataShow = ({data,error}:DataShowProps) => {
       const transp =  load?.data[0].by ?? '';
 
       return <div key={loadNumber}>
-        <h1>carga: {loadNumber}</h1>
-        <h2>por: {transp}; Placa: {licensePlate}; frete: {totalPrice}; cubicagem: {totalCubicage}</h2>
+        <h1 className="text-3xl">{loadNumber}</h1>
+        <h2 className="text-2xl">{transp} - {licensePlate} - R${totalPrice.toFixed(2)} - {totalCubicage}</h2>
         <table>
           <thead>
             <tr>
@@ -126,7 +130,7 @@ function App() {
         <TextArea callback={(event) => setQuery(event.target.value)} value={query} />
         <Button onClick={(event) => handleSend(event)} />
       </aside>
-      <div>
+      <div className="w-full flex flex-col justify-start">
         {loading ? <p>Loading....</p> : <DataShow data={data} error={error}/>}
       </div>
     </main>
