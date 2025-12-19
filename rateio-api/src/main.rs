@@ -1,7 +1,9 @@
 use std::env;
 use std::path::PathBuf;
 
-use actix_web::{web, get, head, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, post, head, App, HttpResponse, HttpServer, Responder};
+use actix_web::http::header;
+use actix_cors::Cors;
 
 use rateio::data::{parse_multiple, parse_email, merge_data};
 use rateio::files::get_xml_files;
@@ -13,7 +15,7 @@ struct DataState{
     data_path: PathBuf
 }
 
-#[get("/data")]
+#[post("/data")]
 async fn get_data(data:web::Data<DataState>, body:String) -> impl Responder {
     let path = data.data_path.clone();
 
@@ -59,6 +61,16 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(
+                Cors::default()
+                    .allowed_origin_fn(|origin,_req_head|{
+                        origin.as_bytes().starts_with(b"http://localhost")
+                    })
+                    .allowed_methods(vec!["HEAD", "POST"])
+                    .allowed_header(header::CONTENT_TYPE)
+                    .block_on_origin_mismatch(false)
+                    .max_age(3600),
+            )
             .app_data(state.clone())
             .service(health)
             .service(get_data)
