@@ -2,67 +2,102 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::math::round_price;
 
 pub type TagName<'a> = &'a [u8];
 
 pub type LoadNumber = u32;
+pub type Quantity = u16;
 pub type Cubicage = f32;
 pub type Price = f32;
-pub type Loads = HashMap<LoadNumber, Load>;
-pub type EmailData = HashMap<LoadNumber,EmailLoadData>;
+pub type Carrier = String;
+pub type Client = String;
+pub type LicensePlate = String;
+pub type DANFE = String;
 
-#[derive(Debug,Clone,Serialize,Deserialize)]
-pub struct EmailLoadData{
-    pub load_number: LoadNumber,
-    pub price:Price,
-    pub license_plate:String
-}
+pub type Error = String;
 
-
-#[derive(Debug,Clone,Default,Serialize,Deserialize)]
-pub struct Data {
-    pub danfe: String,
-    pub to: String,
-    pub by: String,
-    pub load_number: LoadNumber,
-    pub cubicage: Cubicage,
-    pub quantity: u16,
-    pub price: Price
-}
-
-#[derive(Debug,Clone,Default,Serialize,Deserialize)]
-pub struct Load{
-    pub data: Vec<Data>,
-    pub license_plate: String,
-    pub total_price: Price,
-    pub total_cubicage: Cubicage
-}
 
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct Packet{
     pub loads: Loads,
-    pub email_data: EmailData,
     pub errors: Vec<String>
 }
 
-impl Data{
-    pub fn calculate_shipping_price(&mut self, total_price:Price, total_cubicage:Cubicage){
-        if total_cubicage > 0.0 {
-            self.price = ((total_price*(self.cubicage/total_cubicage)) * 100.0).round() / 100.0;
-        }
-    }
+// -------------------INTERMEDIATE OBJS-------------------------
+
+#[derive(Debug,Clone)]
+pub struct Data {
+    pub danfe: DANFE,
+    pub to: Client,
+    pub by: Carrier,
+    pub quantity: Quantity,
+    pub load_number: LoadNumber,
+    pub cubicage: Cubicage
 }
 
-impl Load{
-    pub fn calculate_total_cubicage(&mut self) -> Cubicage {
-        self.total_cubicage = self.data
+// -------------------FOR LOADS---------------------------------
+
+pub type Loads = HashMap<Carrier, Vec<Load>>;
+
+#[derive(Debug,Clone,Default,Serialize,Deserialize)]
+pub struct Load{
+    pub deliveries: Vec<Delivery>,
+    pub license_plate: LicensePlate,
+    pub total_price: Price,
+    pub total_cubicage: Cubicage,
+    pub numer: LoadNumber
+}
+
+// -------------------FOR DELIVERY---------------------------------
+
+#[derive(Debug,Clone,Default,Serialize,Deserialize)]
+pub struct Delivery {
+    pub danfe: Vec<DANFE>,
+    pub to: Client,
+    pub quantity: Quantity,
+    pub price: Price,
+    pub cubicage: Cubicage
+}
+
+// -------------------FOR EMAIL--------------------------------------
+
+pub type EmailData = HashMap<LoadNumber,EmailLoadData>;
+
+#[derive(Debug,Clone)]
+pub struct EmailLoadData{
+    pub price: Price,
+    pub license_plate: LicensePlate
+}
+
+
+// -------------------IMPLEMENTATIONS---------------------------------
+impl Load {
+    pub fn update_load_delivery_data(&mut self){
+        self.calculate_total_cubicage(); 
+        self.calculate_price_for_each_delivery();
+
+    }
+
+    fn calculate_price_for_each_delivery(&mut self){
+        if self.total_cubicage <= 0.0 { 
+            return;
+        }
+
+        for delivery in &mut self.deliveries {
+            delivery.price = round_price(self.total_price*(delivery.cubicage/self.total_cubicage));
+        }
+    }
+
+    fn calculate_total_cubicage(&mut self) -> Cubicage {
+        self.total_cubicage = self.deliveries
             .iter()
-            .map(|value| value.cubicage)
+            .map(|delivery| delivery.cubicage)
             .reduce(|a,b| a + b)
             .expect("Failed on get total value");
 
         self.total_cubicage
     }
-
 }
+
 
