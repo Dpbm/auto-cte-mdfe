@@ -2,75 +2,91 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 
 use quick_xml::reader::Reader;
-use quick_xml::events::{Event,BytesText};
+use quick_xml::events::Event;
 
 use crate::types::*;
-use crate::constants::*;
 use crate::pattern;
 
-fn update_flag(flags:&mut u8, flag:u8){
-    *flags ^= flag;
-}
+mod flags{
+    pub fn generate_flags() -> (u8, u8){
+        let flags : u8 = 0b00000000;
+        /* ============CHECK FLAGS======================
+         * the flags start from right to left
+         * first  - DANFE
+         * second - Razao social
+         * third  - Shipping company
+         * forth  - Load and Cubicage
+         * fifth  - Quantity
+         * sixth  - Access Key
+         */
+            
+        let backtrack : u8 = 0b00000000;
+        /* ===========BACKTRACK FLAGS==================
+         * this one is used when you need to check tags path first  - Razao Social path
+         * second - Shipping Company
+         */
 
-fn check_flag(flags:&u8, flag:u8) -> bool{
-    *flags^flag == 0
-}
-
-fn match_tag(tag_name:TagName, flags:&mut u8, backtrack:&mut u8) {
-    match tag_name{
-        DANFE_TAG => update_flag(flags, DANFE_FLAG),
-        LOAD_CUBICAGE_TAG => update_flag(flags, LOAD_CUBICAGE_FLAG),
-        RAZAO_SOCIAL_FIRST_TAG => update_flag(backtrack, RAZAO_SOCIAL_BACKTRACK_FLAG),
-        SHIPPING_COMPANY_FIRST_TAG => update_flag(backtrack, SHIPPING_COMPANY_BACKTRACK_FLAG),
-        X_NOME if check_flag(backtrack, RAZAO_SOCIAL_BACKTRACK_FLAG) => update_flag(flags, RAZAO_SOCIAL_FLAG),
-        X_NOME if check_flag(backtrack, SHIPPING_COMPANY_BACKTRACK_FLAG) => update_flag(flags, SHIPPING_COMPANY_FLAG),
-        QUANTITY_TAG => update_flag(flags, QUANTITY_FLAG),
-        ACCESS_KEY_TAG => update_flag(flags, ACCESS_KEY_FLAG),
-        _ => (),
+        (flags, backtrack)
     }
-}
 
-fn match_text(flags:&u8, text:&BytesText, tmp_data:&mut HashMap<String,String>){
-    let text_data = text.decode().unwrap().to_string();
-    {
-        match flags{
-            flags if check_flag(&flags, DANFE_FLAG) =>  
-                tmp_data.insert(String::from("danfe"), text_data),
-            flags if check_flag(&flags, RAZAO_SOCIAL_FLAG) =>  
-                tmp_data.insert(String::from("to"), text_data),
-            flags if check_flag(&flags, SHIPPING_COMPANY_FLAG) =>  
-                tmp_data.insert(String::from("by"), text_data),
-            flags if check_flag(&flags, LOAD_CUBICAGE_FLAG) =>  
-                tmp_data.insert(String::from("info"), text_data),
-            flags if check_flag(&flags, QUANTITY_FLAG) =>  
-                tmp_data.insert(String::from("quantity"), text_data),
-            flags if check_flag(&flags, ACCESS_KEY_FLAG) =>  
-                tmp_data.insert(String::from("access_key"), text_data),
-            _ => None,
-        };
+    pub fn update_flag(flags:&mut u8, flag:u8){
+        *flags ^= flag;
     }
+
+    pub fn check_flag(flags:&u8, flag:u8) -> bool{
+        *flags&flag == flag
+    }
+
 }
 
-fn generate_flags() -> (u8, u8){
-    let flags : u8 = 0b00000000;
-    /* ============CHECK FLAGS======================
-     * the flags start from right to left
-     * first  - DANFE
-     * second - Razao social
-     * third  - Shipping company
-     * forth  - Load and Cubicage
-     * fifth  - Quantity
-     * sixth  - Access Key
-     */
-        
-    let backtrack : u8 = 0b00000000;
-    /* ===========BACKTRACK FLAGS==================
-     * this one is used when you need to check tags path
-     * first  - Razao Social path
-     * second - Shipping Company
-     */
+mod tags{
+    use std::collections::HashMap;
+    use quick_xml::events::BytesText;
 
-    (flags, backtrack)
+    use crate::types::*;
+    use crate::constants::*;
+    use super::flags;
+
+    pub fn match_tag(tag_name:TagName, flags:&mut u8, backtrack:&mut u8) {
+        match tag_name{
+            DANFE_TAG => flags::update_flag(flags, DANFE_FLAG),
+            LOAD_CUBICAGE_TAG => flags::update_flag(flags, LOAD_CUBICAGE_FLAG),
+            RAZAO_SOCIAL_FIRST_TAG => flags::update_flag(backtrack, RAZAO_SOCIAL_BACKTRACK_FLAG),
+            SHIPPING_COMPANY_FIRST_TAG => flags::update_flag(backtrack, SHIPPING_COMPANY_BACKTRACK_FLAG),
+            X_NOME => {
+                if flags::check_flag(backtrack, RAZAO_SOCIAL_BACKTRACK_FLAG) {
+                    flags::update_flag(flags, RAZAO_SOCIAL_FLAG);
+                }
+                if flags::check_flag(backtrack, SHIPPING_COMPANY_BACKTRACK_FLAG) {
+                    flags::update_flag(flags, SHIPPING_COMPANY_FLAG);
+                }
+            },
+            QUANTITY_TAG => flags::update_flag(flags, QUANTITY_FLAG),
+            ACCESS_KEY_TAG => flags::update_flag(flags, ACCESS_KEY_FLAG),
+            _ => (),
+        }
+    }
+
+    pub fn match_text(flags:&u8, text:&BytesText, tmp_data:&mut HashMap<String,String>){
+        let text_data = text.decode().unwrap().to_string();
+        {
+            match flags{
+                flags if flags::check_flag(&flags, DANFE_FLAG) =>  
+                    tmp_data.insert(String::from("danfe"), text_data),
+                flags if flags::check_flag(&flags, RAZAO_SOCIAL_FLAG) =>  
+                    tmp_data.insert(String::from("to"), text_data),
+                flags if flags::check_flag(&flags, SHIPPING_COMPANY_FLAG) =>  
+                    tmp_data.insert(String::from("by"), text_data),
+                flags if flags::check_flag(&flags, LOAD_CUBICAGE_FLAG) =>  
+                    tmp_data.insert(String::from("info"), text_data),
+                flags if flags::check_flag(&flags, QUANTITY_FLAG) =>  
+                    tmp_data.insert(String::from("quantity"), text_data),
+                flags if flags::check_flag(&flags, ACCESS_KEY_FLAG) =>  
+                    tmp_data.insert(String::from("access_key"), text_data),
+                _ => None,
+            };
+        }
+    }
 }
 
 pub fn parse_email(email_text:&String) -> EmailData{
@@ -95,7 +111,7 @@ pub fn parse_file(file:&PathBuf) -> (Data, Vec<Error>) {
     let mut reader = Reader::from_file(file).expect("Failed on open reader for file");
     reader.config_mut().trim_text(true);
 
-    let (mut flags, mut backtrack) = generate_flags();
+    let (mut flags, mut backtrack) = flags::generate_flags();
 
     let mut tmp_data = HashMap::new();
     let mut buffer = Vec::new();
@@ -107,9 +123,9 @@ pub fn parse_file(file:&PathBuf) -> (Data, Vec<Error>) {
                 errors.push(String::from(format!("Failed on read data from xml: {:?} at position {}", error, reader.error_position())));
                 break;
             },
-            Ok(Event::Start(tag)) => match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
-            Ok(Event::End(tag)) => match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
-            Ok(Event::Text(text)) => match_text(&flags, &text, &mut tmp_data),
+            Ok(Event::Start(tag)) => tags::match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
+            Ok(Event::End(tag)) => tags::match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
+            Ok(Event::Text(text)) => tags::match_text(&flags, &text, &mut tmp_data),
             Ok(Event::Eof) => break,
             _ => ()
         }
@@ -296,3 +312,137 @@ pub fn parse_multiple(files:&Vec<PathBuf>) -> (HashMap<LoadNumber, Vec<Data>>, V
 //        }
 //    }
 //}
+//
+
+#[cfg(test)]
+mod tests{
+    use std::collections::HashMap;
+
+    use quick_xml::events::BytesText;
+
+    use crate::constants::*;
+
+    use super::*;
+   
+    #[test]
+    fn test_get_flags(){
+        let (flag1, flag2) = flags::generate_flags();
+
+        assert_eq!(flag1, 0);
+        assert_eq!(flag2, 0);
+    }
+
+    #[test]
+    fn test_update_flags(){
+        let (mut flag1, mut flag2) = flags::generate_flags();
+
+        flags::update_flag(&mut flag1, 1);
+        assert_eq!(flag1,1);
+
+        flags::update_flag(&mut flag2, 255);
+        assert_eq!(flag2,255);
+    }
+
+    #[test]
+    fn test_check_flags(){
+        let (mut flag1, _) = flags::generate_flags();
+
+        flags::update_flag(&mut flag1, DANFE_FLAG);
+        assert_eq!(flags::check_flag(&flag1, DANFE_FLAG), true);
+        
+        flags::update_flag(&mut flag1, RAZAO_SOCIAL_FLAG);
+        assert_eq!(flags::check_flag(&flag1, RAZAO_SOCIAL_FLAG), true); 
+        assert_eq!(flags::check_flag(&flag1, DANFE_FLAG), true);
+        
+        flags::update_flag(&mut flag1, SHIPPING_COMPANY_FLAG);
+        assert_eq!(flags::check_flag(&flag1, RAZAO_SOCIAL_FLAG), true); 
+        assert_eq!(flags::check_flag(&flag1, DANFE_FLAG), true);
+        assert_eq!(flags::check_flag(&flag1, SHIPPING_COMPANY_FLAG), true);
+    }
+
+    #[test]
+    fn test_match_tag(){
+        let (mut flags, mut backtrack) = flags::generate_flags();
+        let mut total_flag = 0;
+        let mut total_backtrack = 0;
+
+        // no tag
+        tags::match_tag(b"invalid_tag", &mut flags, &mut backtrack);
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack);
+        
+        tags::match_tag(DANFE_TAG, &mut flags, &mut backtrack);
+        total_flag += DANFE_FLAG;
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack);
+        
+        tags::match_tag(LOAD_CUBICAGE_TAG, &mut flags, &mut backtrack);
+        total_flag += LOAD_CUBICAGE_FLAG;
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack);
+        
+        // X_NOME without backtrack
+        tags::match_tag(X_NOME, &mut flags, &mut backtrack);
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack);
+
+        tags::match_tag(RAZAO_SOCIAL_FIRST_TAG, &mut flags, &mut backtrack);
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack+RAZAO_SOCIAL_BACKTRACK_FLAG);
+        
+        // X_NOME for razao social
+        tags::match_tag(X_NOME, &mut flags, &mut backtrack);
+        assert_eq!(flags,total_flag+RAZAO_SOCIAL_FLAG);
+        assert_eq!(backtrack,total_backtrack+RAZAO_SOCIAL_BACKTRACK_FLAG);
+        
+        flags::update_flag(&mut flags, RAZAO_SOCIAL_FLAG);
+        flags::update_flag(&mut backtrack, RAZAO_SOCIAL_BACKTRACK_FLAG);
+        tags::match_tag(SHIPPING_COMPANY_FIRST_TAG, &mut flags, &mut backtrack);
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack+SHIPPING_COMPANY_BACKTRACK_FLAG);
+        
+        // X_NOME for shipping company
+        tags::match_tag(X_NOME, &mut flags, &mut backtrack);
+        assert_eq!(flags,total_flag+SHIPPING_COMPANY_FLAG);
+        assert_eq!(backtrack,total_backtrack+SHIPPING_COMPANY_BACKTRACK_FLAG);
+
+        // X_NOME with both flags
+        flags::update_flag(&mut flags, SHIPPING_COMPANY_FLAG);
+        flags::update_flag(&mut backtrack, SHIPPING_COMPANY_BACKTRACK_FLAG);
+        tags::match_tag(RAZAO_SOCIAL_FIRST_TAG, &mut flags, &mut backtrack);
+        tags::match_tag(SHIPPING_COMPANY_FIRST_TAG, &mut flags, &mut backtrack);
+        total_backtrack += RAZAO_SOCIAL_BACKTRACK_FLAG + SHIPPING_COMPANY_BACKTRACK_FLAG;
+        total_flag += RAZAO_SOCIAL_FLAG + SHIPPING_COMPANY_FLAG;
+        tags::match_tag(X_NOME, &mut flags, &mut backtrack);
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack);
+
+        tags::match_tag(QUANTITY_TAG, &mut flags, &mut backtrack);
+        total_flag += QUANTITY_FLAG;
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack);
+
+        tags::match_tag(ACCESS_KEY_TAG, &mut flags, &mut backtrack);
+        total_flag += ACCESS_KEY_FLAG;
+        assert_eq!(flags,total_flag);
+        assert_eq!(backtrack,total_backtrack);
+    }
+
+    #[test]
+    fn test_match_text(){
+        let mut flags : u8 = 1;
+        let mut data = HashMap::new();
+        let base_text = "test";
+        let text = BytesText::new(&base_text);
+
+        for power in 0..=7{
+            flags <<= power;
+            tags::match_text(&flags, &text, &mut data);
+        }
+
+        for (_,v) in data.iter(){
+            assert_eq!(v, base_text);
+        }
+
+    }
+}
