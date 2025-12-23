@@ -1,11 +1,4 @@
-use std::path::PathBuf;
-use std::collections::HashMap;
 
-use quick_xml::reader::Reader;
-use quick_xml::events::Event;
-
-use crate::types::*;
-use crate::pattern;
 
 mod flags{
     pub fn generate_flags() -> (u8, u8){
@@ -15,8 +8,7 @@ mod flags{
          * first  - DANFE
          * second - Razao social
          * third  - Shipping company
-         * forth  - Load and Cubicage
-         * fifth  - Quantity
+         * forth  - Load and Cubicage fifth  - Quantity
          * sixth  - Access Key
          */
             
@@ -68,7 +60,7 @@ mod tags{
     }
 
     pub fn match_text(flags:&u8, text:&BytesText, tmp_data:&mut HashMap<String,String>){
-        let text_data = text.decode().unwrap().to_string();
+        let text_data = text.decode().expect("Failed on decode text from XML").to_string();
         if flags::check_flag(&flags, DANFE_FLAG) {
             tmp_data.insert(String::from("danfe"), text_data.clone());
         }
@@ -90,208 +82,222 @@ mod tags{
     }
 }
 
-pub fn parse_email(email_text:&String) -> EmailData{
-    let pattern_email = pattern::text::email_text();
-    let mut data = HashMap::new();
 
-    for (_, [load_number, license_plate, price]) in pattern_email.captures_iter(email_text.to_lowercase().as_str()).map(|cap| cap.extract()){
-        let load_number_parsed = load_number.parse::<LoadNumber>().expect("Failed on convert load number to number");
-        data.insert(
-            load_number_parsed,
-            EmailLoadData{
-                price: price.replace(".","").replace(",",".").parse::<Price>().expect("Failed on convert price to float"),
-                license_plate: license_plate.to_string()
-            }
-        );
-    }
+mod parsing{
+    use std::collections::HashMap;
+    use std::path::PathBuf;
 
-    data
-}
+    use quick_xml::events::Event;
+    use quick_xml::Reader;
 
-pub fn parse_file(file:&PathBuf) -> (Data, Vec<Error>) {
-    let mut reader = Reader::from_file(file).expect("Failed on open reader for file");
-    reader.config_mut().trim_text(true);
+    use crate::pattern;
+    use crate::types::*;
 
-    let (mut flags, mut backtrack) = flags::generate_flags();
+    use super::*;
 
-    let mut tmp_data = HashMap::new();
-    let mut buffer = Vec::new();
-    let mut errors = Vec::new();
-    
-    loop{
-        match reader.read_event_into(&mut buffer){
-            Err(error) => {
-                errors.push(String::from(format!("Failed on read data from xml: {:?} at position {}", error, reader.error_position())));
-                break;
-            },
-            Ok(Event::Start(tag)) => tags::match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
-            Ok(Event::End(tag)) => tags::match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
-            Ok(Event::Text(text)) => tags::match_text(&flags, &text, &mut tmp_data),
-            Ok(Event::Eof) => break,
-            _ => ()
+    pub fn parse_email(email_text:&String) -> EmailData{
+        let pattern_email = pattern::text::email_text();
+        let mut data = HashMap::new();
+
+        for (_, [load_number, license_plate, price]) in pattern_email.captures_iter(email_text.to_lowercase().as_str()).map(|cap| cap.extract()){
+            let load_number_parsed = load_number.parse::<LoadNumber>().expect("Failed on convert load number to number");
+            data.insert(
+                load_number_parsed,
+                EmailLoadData{
+                    price: price.replace(".","").replace(",",".").parse::<Price>().expect("Failed on convert price to float"),
+                    license_plate: license_plate.to_string()
+                }
+            );
         }
-        buffer.clear();
-    }
-    
-    let mut load_number : LoadNumber = 0;
-    let mut cubicage: Cubicage = 0.0;
-    let mut quantity: Quantity = 0;
 
-    match tmp_data.get("info"){
-        Some(value) => {
-
-            let pattern_load = pattern::xml::load();
-            let pattern_cubicage = pattern::xml::cubicage();
-
-            let info = value.to_lowercase();
-            match pattern_load.captures(&info){
-                Some(matched_value) => {
-                
-                    match matched_value.get(1) {
-                        Some(value) => {
-
-                            match value.as_str().parse::<LoadNumber>(){
-                                Ok(parsed_value) => {
-                                    load_number = parsed_value;
-                                }
-                                Err(error) => {
-                                    errors.push(String::from(format!("Failed on parse load number: {:?}",error)));
-                                }
-                            }
-
-
-                        }
-                        None => {
-                            errors.push(String::from("Couldnt get the match for load"));
-                        }
-                    }
-
-                }
-                None => {
-                    errors.push(String::from("No matches for load"));
-                }
-            }
-
-            match pattern_cubicage.captures(&info){
-                Some(matched_value) => {
-                
-                    match matched_value.get(1) {
-                        Some(value) => {
-
-                            match value.as_str().replace(",",".").parse::<Cubicage>(){
-                                Ok(parsed_value) => {
-                                    cubicage = parsed_value;
-                                }
-                                Err(error) => {
-                                    errors.push(String::from(format!("Failed on parse cubicage: {:?}",error)));
-                                }
-                            }
-
-
-                        }
-                        None => {
-                            errors.push(String::from("Couldnt get the match for cubicage"));
-                        }
-                    }
-
-                }
-                None => {
-                    errors.push(String::from("No matches for cubicage"));
-                }
-            }
-        },
-        None => {
-            errors.push(String::from("No Data for Info"));
-        }
+        data
     }
 
+    pub fn parse_file(file:&PathBuf) -> (Data, Vec<Error>) {
+        let mut reader = Reader::from_file(file).expect("Failed on open reader for file");
+        reader.config_mut().trim_text(true);
 
-    match tmp_data.get("quantity") {
-        Some(value) =>  {
-            
-            match value.parse::<Quantity>() {
-                Ok(parsed_value) => {
-                    quantity = parsed_value;
-                },
+        let (mut flags, mut backtrack) = flags::generate_flags();
+
+        let mut tmp_data = HashMap::new();
+        let mut buffer = Vec::new();
+        let mut errors = Vec::new();
+        
+        loop{
+            match reader.read_event_into(&mut buffer){
                 Err(error) => {
-                    errors.push(String::from(format!("Failed on parse quantity : {:?} ", error)));
+                    errors.push(String::from(format!("Failed on read data from xml: {:?} at position {}", error, reader.error_position())));
+                    break;
                 },
+                Ok(Event::Start(tag)) => tags::match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
+                Ok(Event::End(tag)) => tags::match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
+                Ok(Event::Text(text)) => tags::match_text(&flags, &text, &mut tmp_data),
+                Ok(Event::Eof) => break,
+                _ => ()
+            }
+            buffer.clear();
+        }
+        
+        let mut load_number : LoadNumber = 0;
+        let mut cubicage: Cubicage = 0.0;
+        let mut quantity: Quantity = 0;
+
+        match tmp_data.get("info"){
+            Some(value) => {
+
+                let pattern_load = pattern::xml::load();
+                let pattern_cubicage = pattern::xml::cubicage();
+
+                let info = value.to_lowercase();
+                match pattern_load.captures(&info){
+                    Some(matched_value) => {
+                    
+                        match matched_value.get(1) {
+                            Some(value) => {
+
+                                match value.as_str().parse::<LoadNumber>(){
+                                    Ok(parsed_value) => {
+                                        load_number = parsed_value;
+                                    }
+                                    Err(error) => {
+                                        errors.push(String::from(format!("Failed on parse load number: {:?}",error)));
+                                    }
+                                }
+
+
+                            }
+                            None => {
+                                errors.push(String::from("Couldnt get the match for load"));
+                            }
+                        }
+
+                    }
+                    None => {
+                        errors.push(String::from("No matches for load"));
+                    }
+                }
+
+                match pattern_cubicage.captures(&info){
+                    Some(matched_value) => {
+                    
+                        match matched_value.get(1) {
+                            Some(value) => {
+
+                                match value.as_str().replace(",",".").parse::<Cubicage>(){
+                                    Ok(parsed_value) => {
+                                        cubicage = parsed_value;
+                                    }
+                                    Err(error) => {
+                                        errors.push(String::from(format!("Failed on parse cubicage: {:?}",error)));
+                                    }
+                                }
+
+
+                            }
+                            None => {
+                                errors.push(String::from("Couldnt get the match for cubicage"));
+                            }
+                        }
+
+                    }
+                    None => {
+                        errors.push(String::from("No matches for cubicage"));
+                    }
+                }
+            },
+            None => {
+                errors.push(String::from("No Data for Info"));
+            }
+        }
+
+
+        match tmp_data.get("quantity") {
+            Some(value) =>  {
+                
+                match value.parse::<Quantity>() {
+                    Ok(parsed_value) => {
+                        quantity = parsed_value;
+                    },
+                    Err(error) => {
+                        errors.push(String::from(format!("Failed on parse quantity : {:?} ", error)));
+                    },
+                }
+
+
+            },
+            None => {
+                errors.push(String::from("No Quantity from parsed data!"));
+            }
+
+        }
+
+
+        let danfe = match tmp_data.get("danfe") {
+            Some(value) => {
+                value.clone()
+            },
+            None => {
+                errors.push(String::from("No DANFE"));
+                String::from("")
+            }
+        };
+        
+        let to = match tmp_data.get("to") {
+            Some(value) => {
+                value.clone()
+            },
+            None => {
+                errors.push(String::from("No client data"));
+                String::from("")
+            }
+        };
+        
+        let by = match tmp_data.get("by") {
+            Some(value) => {
+                value.clone()
+            },
+            None => {
+                errors.push(String::from("No carrier data"));
+                String::from("")
+            }
+        };
+
+
+        (
+            Data {
+                danfe: danfe,
+                to: to,
+                by: by,
+                quantity: quantity,
+                load_number: load_number,
+                cubicage: cubicage,
+            },
+            errors
+        )
+    }
+
+    pub fn parse_multiple(files:&Vec<PathBuf>) -> (HashMap<LoadNumber, Vec<Data>>, Vec<Error>){
+        
+        let mut all_data = HashMap::<LoadNumber,Vec<Data>>::new();
+        let mut errors = Vec::new();
+
+        for file in files.iter(){
+            let (data,parse_errors) = parse_file(&file);
+            
+            errors.extend(parse_errors);
+
+            
+            if !all_data.contains_key(&data.load_number){
+                all_data.insert(data.load_number, vec![data]);
+                continue;
             }
 
 
-        },
-        None => {
-            errors.push(String::from("No Quantity from parsed data!"));
+            if let Some(data_list) = all_data.get_mut(&data.load_number) { data_list.push(data) }
         }
 
+        (all_data,errors)
     }
-
-
-    let danfe = match tmp_data.get("danfe") {
-        Some(value) => {
-            value.clone()
-        },
-        None => {
-            errors.push(String::from("No DANFE"));
-            String::from("")
-        }
-    };
-    
-    let to = match tmp_data.get("to") {
-        Some(value) => {
-            value.clone()
-        },
-        None => {
-            errors.push(String::from("No client data"));
-            String::from("")
-        }
-    };
-    
-    let by = match tmp_data.get("by") {
-        Some(value) => {
-            value.clone()
-        },
-        None => {
-            errors.push(String::from("No carrier data"));
-            String::from("")
-        }
-    };
-
-
-    (
-        Data {
-            danfe: danfe,
-            to: to,
-            by: by,
-            quantity: quantity,
-            load_number: load_number,
-            cubicage: cubicage,
-        },
-        errors
-    )
-}
-
-pub fn parse_multiple(files:&Vec<PathBuf>) -> (HashMap<LoadNumber, Vec<Data>>, Vec<Error>){
-    
-    let mut all_data = HashMap::<LoadNumber,Vec<Data>>::new();
-    let mut errors = Vec::new();
-
-    for file in files.iter(){
-        let (data,parse_errors) = parse_file(&file);
-        
-        errors.extend(parse_errors);
-
-        
-        if !all_data.contains_key(&data.load_number){
-            all_data.insert(data.load_number, vec![data]);
-            continue;
-        }
-
-
-        if let Some(data_list) = all_data.get_mut(&data.load_number) { data_list.push(data) }
-    }
-
-    (all_data,errors)
 }
 
 //pub fn merge_data(packet:&mut Packet){
@@ -453,9 +459,29 @@ mod tests{
         for (_,v) in data.iter(){
             assert_eq!(v, base_text);
         }
+    }
 
+    #[test]
+    fn test_parse_email(){
+        
+        let email = String::from(r#"
+            CARGA 123456 Placa 1234asz fRetE 1.342,87
+            CARGA : 345678 PlAca: 1234asz fRetE : 8.342,93
+            CARGA: 891234 Placa: 124-asz fRetE:1.342,87
+        "#);
 
+        let data = parsing::parse_email(&email);
+        
+        let first_load = data.get(&123456).unwrap();
+        assert_eq!(first_load.price, 1342.87);
+        assert_eq!(first_load.license_plate, "1234asz");
 
+        let second_load = data.get(&345678).unwrap();
+        assert_eq!(second_load.price, 8342.93);
+        assert_eq!(second_load.license_plate, "1234asz");
 
+        let third_load = data.get(&891234).unwrap();
+        assert_eq!(third_load.price, 1342.87);
+        assert_eq!(third_load.license_plate, "124-asz");
     }
 }
