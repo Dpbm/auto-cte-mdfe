@@ -69,22 +69,23 @@ mod tags{
 
     pub fn match_text(flags:&u8, text:&BytesText, tmp_data:&mut HashMap<String,String>){
         let text_data = text.decode().unwrap().to_string();
-        {
-            match flags{
-                flags if flags::check_flag(&flags, DANFE_FLAG) =>  
-                    tmp_data.insert(String::from("danfe"), text_data),
-                flags if flags::check_flag(&flags, RAZAO_SOCIAL_FLAG) =>  
-                    tmp_data.insert(String::from("to"), text_data),
-                flags if flags::check_flag(&flags, SHIPPING_COMPANY_FLAG) =>  
-                    tmp_data.insert(String::from("by"), text_data),
-                flags if flags::check_flag(&flags, LOAD_CUBICAGE_FLAG) =>  
-                    tmp_data.insert(String::from("info"), text_data),
-                flags if flags::check_flag(&flags, QUANTITY_FLAG) =>  
-                    tmp_data.insert(String::from("quantity"), text_data),
-                flags if flags::check_flag(&flags, ACCESS_KEY_FLAG) =>  
-                    tmp_data.insert(String::from("access_key"), text_data),
-                _ => None,
-            };
+        if flags::check_flag(&flags, DANFE_FLAG) {
+            tmp_data.insert(String::from("danfe"), text_data.clone());
+        }
+        if flags::check_flag(&flags, RAZAO_SOCIAL_FLAG) {
+            tmp_data.insert(String::from("to"), text_data.clone());
+        }
+        if flags::check_flag(&flags, SHIPPING_COMPANY_FLAG) {
+            tmp_data.insert(String::from("by"), text_data.clone());
+        }
+        if flags::check_flag(&flags, LOAD_CUBICAGE_FLAG) {
+            tmp_data.insert(String::from("info"), text_data.clone());
+        }
+        if flags::check_flag(&flags, QUANTITY_FLAG) {
+            tmp_data.insert(String::from("quantity"), text_data.clone());
+        }
+        if flags::check_flag(&flags, ACCESS_KEY_FLAG) {
+            tmp_data.insert(String::from("access_key"), text_data.clone());
         }
     }
 }
@@ -432,6 +433,7 @@ mod tests{
     fn test_match_text(){
         let mut flags : u8 = 1;
         let mut data = HashMap::new();
+
         let base_text = "test";
         let text = BytesText::new(&base_text);
 
@@ -443,6 +445,17 @@ mod tests{
         for (_,v) in data.iter(){
             assert_eq!(v, base_text);
         }
+
+        
+        let all_flags : u8 = 255;
+        let mut data = HashMap::new();
+        tags::match_text(&all_flags, &text, &mut data);
+        for (_,v) in data.iter(){
+            assert_eq!(v, base_text);
+        }
+
+
+
 
     }
 }
