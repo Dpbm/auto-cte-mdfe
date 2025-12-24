@@ -34,6 +34,7 @@ mod flags{
 mod tags{
     use std::collections::HashMap;
     use quick_xml::events::BytesText;
+    use quick_xml::encoding::EncodingError;
 
     use crate::types::*;
     use crate::constants::*;
@@ -59,8 +60,8 @@ mod tags{
         }
     }
 
-    pub fn match_text(flags:&u8, text:&BytesText, tmp_data:&mut HashMap<String,String>){
-        let text_data = text.decode().expect("Failed on decode text from XML").to_string();
+    pub fn match_text(flags:&u8, text:&BytesText, tmp_data:&mut HashMap<String,String>) -> Result<(), EncodingError>{
+        let text_data = text.decode()?.to_string();
         if flags::check_flag(&flags, DANFE_FLAG) {
             tmp_data.insert(String::from("danfe"), text_data.clone());
         }
@@ -79,6 +80,8 @@ mod tags{
         if flags::check_flag(&flags, ACCESS_KEY_FLAG) {
             tmp_data.insert(String::from("access_key"), text_data.clone());
         }
+
+        Ok(())
     }
 }
 
@@ -95,26 +98,27 @@ mod parsing{
 
     use super::*;
 
-    pub fn parse_email(email_text:&String) -> EmailData{
+    pub fn parse_email(email_text:&String) -> Result<EmailData, ParseErrors>{
         let pattern_email = pattern::text::email_text();
         let mut data = HashMap::new();
 
         for (_, [load_number, license_plate, price]) in pattern_email.captures_iter(email_text.to_lowercase().as_str()).map(|cap| cap.extract()){
-            let load_number_parsed = load_number.parse::<LoadNumber>().expect("Failed on convert load number to number");
+            let load_number_parsed = load_number.parse::<LoadNumber>()?;
             data.insert(
                 load_number_parsed,
                 EmailLoadData{
-                    price: price.replace(".","").replace(",",".").parse::<Price>().expect("Failed on convert price to float"),
+                    price: price.replace(".","").replace(",",".").parse::<Price>()?,
                     license_plate: license_plate.to_string()
                 }
             );
         }
 
-        data
+
+        Ok(data)
     }
 
-    pub fn parse_file(file:&PathBuf) -> (Data, Vec<Error>) {
-        let mut reader = Reader::from_file(file).expect("Failed on open reader for file");
+    pub fn parse_file(file:&PathBuf) -> Result<(Data, Vec<Error>), ParseErrors> {
+        let mut reader = Reader::from_file(file)?;
         reader.config_mut().trim_text(true);
 
         let (mut flags, mut backtrack) = flags::generate_flags();
@@ -131,7 +135,7 @@ mod parsing{
                 },
                 Ok(Event::Start(tag)) => tags::match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
                 Ok(Event::End(tag)) => tags::match_tag(tag.name().as_ref(), &mut flags, &mut backtrack),
-                Ok(Event::Text(text)) => tags::match_text(&flags, &text, &mut tmp_data),
+                Ok(Event::Text(text)) => tags::match_text(&flags, &text, &mut tmp_data)?,
                 Ok(Event::Eof) => break,
                 _ => ()
             }
@@ -263,7 +267,7 @@ mod parsing{
         };
 
 
-        (
+        Ok((
             Data {
                 danfe: danfe,
                 to: to,
@@ -273,16 +277,16 @@ mod parsing{
                 cubicage: cubicage,
             },
             errors
-        )
+        ))
     }
 
-    pub fn parse_multiple(files:&Vec<PathBuf>) -> (HashMap<LoadNumber, Vec<Data>>, Vec<Error>){
+    pub fn parse_multiple(files:&Vec<PathBuf>) -> Result<(HashMap<LoadNumber, Vec<Data>>, Vec<Error>), ParseErrors>{
         
         let mut all_data = HashMap::<LoadNumber,Vec<Data>>::new();
         let mut errors = Vec::new();
 
         for file in files.iter(){
-            let (data,parse_errors) = parse_file(&file);
+            let (data,parse_errors) = parse_file(&file)?;
             
             errors.extend(parse_errors);
 
@@ -296,30 +300,10 @@ mod parsing{
             if let Some(data_list) = all_data.get_mut(&data.load_number) { data_list.push(data) }
         }
 
-        (all_data,errors)
+        Ok((all_data,errors))
     }
 }
 
-//pub fn merge_data(packet:&mut Packet){
-//    for (key,val) in &packet.email_data{
-//        match packet.loads.get_mut(key){
-//            Some(load) => {
-//                let total_price = val.price;
-//
-//                load.license_plate = val.license_plate.clone();
-//                load.total_price = total_price;
-//
-//                let total_cubicage = load.calculate_total_cubicage();
-//
-//                load.data.iter_mut().for_each(|item| item.calculate_shipping_price(total_price, total_cubicage) );
-//            }
-//            None => {
-//                packet.errors.push(String::from(format!("Failed on get load number: {}",key)));
-//            }
-//        }
-//    }
-//}
-//
 
 #[cfg(test)]
 mod tests{
@@ -470,7 +454,7 @@ mod tests{
             CARGA: 891234 Placa: 124-asz fRetE:1.342,87
         "#);
 
-        let data = parsing::parse_email(&email);
+        let data = parsing::parse_email(&email).unwrap();
         
         let first_load = data.get(&123456).unwrap();
         assert_eq!(first_load.price, 1342.87);

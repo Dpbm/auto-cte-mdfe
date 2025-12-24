@@ -1,4 +1,9 @@
 use std::collections::HashMap;
+use std::num::{ParseIntError, ParseFloatError};
+use std::fmt;
+
+use quick_xml::errors::Error as quick_xml_ERROR;
+use quick_xml::encoding::EncodingError;
 
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +22,48 @@ pub type DANFE = String;
 
 pub type Error = String;
 
+#[derive(Debug)]
+pub enum ParseErrors{
+   ParseInt(ParseIntError),
+   ParseFloat(ParseFloatError),
+   XMLError(quick_xml_ERROR),
+   EncodingXMLError(EncodingError)
+}
+
+impl fmt::Display for ParseErrors{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self{
+            ParseErrors::ParseInt(int_error) => write!(f,"Couldn't parse int value: {}", int_error),
+            ParseErrors::ParseFloat(float_error) => write!(f,"Couldn't parse float value: {}", float_error),
+            ParseErrors::XMLError(xml_error) => write!(f,"Couldn't parse xml: {}", xml_error),
+            ParseErrors::EncodingXMLError(encoding_error) => write!(f,"Failed on Decode: {}", encoding_error)
+        }
+    }
+}
+
+impl From<ParseIntError> for ParseErrors {
+    fn from(e: ParseIntError) -> Self {
+        ParseErrors::ParseInt(e)
+    }
+}
+
+impl From<ParseFloatError> for ParseErrors {
+    fn from(e: ParseFloatError) -> Self {
+        ParseErrors::ParseFloat(e)
+    }
+}
+
+impl From<quick_xml_ERROR> for ParseErrors {
+    fn from(e: quick_xml_ERROR) -> Self {
+        ParseErrors::XMLError(e)
+    }
+}
+
+impl From<EncodingError> for ParseErrors {
+    fn from(e: EncodingError) -> Self {
+        ParseErrors::EncodingXMLError(e)
+    }
+}
 
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct Packet{
