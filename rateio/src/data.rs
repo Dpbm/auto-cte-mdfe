@@ -265,6 +265,16 @@ mod parsing{
                 String::from("")
             }
         };
+        
+        let key = match tmp_data.get("access_key") {
+            Some(value) => {
+                value.clone()
+            },
+            None => {
+                errors.push(String::from("No NF-e Key"));
+                String::from("")
+            }
+        };
 
 
         Ok((
@@ -275,6 +285,7 @@ mod parsing{
                 quantity: quantity,
                 load_number: load_number,
                 cubicage: cubicage,
+                key: key
             },
             errors
         ))
@@ -308,10 +319,12 @@ mod parsing{
 #[cfg(test)]
 mod tests{
     use std::collections::HashMap;
+    use std::path::PathBuf;
 
     use quick_xml::events::BytesText;
 
     use crate::constants::*;
+    use crate::types::ParseErrors;
 
     use super::*;
    
@@ -449,9 +462,9 @@ mod tests{
     fn test_parse_email(){
         
         let email = String::from(r#"
-            CARGA 123456 Placa 1234asz fRetE 1.342,87
-            CARGA : 345678 PlAca: 1234asz fRetE : 8.342,93
-            CARGA: 891234 Placa: 124-asz fRetE:1.342,87
+            carga 123456 Placa 1234asz fRetE 1.342,87
+            CArgA : 345678 PlAca: 1234asz fRetE : 8.342,93
+            Carga: 891234 Placa: 124-asz fRetE:1.342,87
         "#);
 
         let data = parsing::parse_email(&email).unwrap();
@@ -467,5 +480,37 @@ mod tests{
         let third_load = data.get(&891234).unwrap();
         assert_eq!(third_load.price, 1342.87);
         assert_eq!(third_load.license_plate, "124-asz");
+    }
+    
+    #[test]
+    fn test_parse_file() -> Result<(), ParseErrors>{
+        let correct_file_path = PathBuf::from("./test_data/correct.xml");
+        let (data,errors) = parsing::parse_file(&correct_file_path)?; 
+
+        assert_eq!(data.danfe, "12345");
+        assert_eq!(data.cubicage, 3.431);
+        assert_eq!(data.to, "test");
+        assert_eq!(data.by, "test3");
+        assert_eq!(data.quantity, 10000);
+        assert_eq!(data.load_number, 3245);
+        assert_eq!(data.key, "78493");
+
+
+        assert_eq!(errors.len(), 0);
+        
+        let wrong_file_path = PathBuf::from("./test_data/wrong.xml");
+        let (data,errors) = parsing::parse_file(&wrong_file_path)?; 
+
+        assert_eq!(data.danfe, "");
+        assert_eq!(data.cubicage, 0.0);
+        assert_eq!(data.to, "");
+        assert_eq!(data.by, "");
+        assert_eq!(data.quantity, 0);
+        assert_eq!(data.load_number, 0);
+        assert_eq!(data.key, "");
+
+        assert_eq!(errors.len(), 6); // cubicage and load number are in the same tag
+
+        Ok(())
     }
 }

@@ -19,6 +19,7 @@ pub type Carrier = String;
 pub type Client = String;
 pub type LicensePlate = String;
 pub type DANFE = String;
+pub type Key = String;
 
 pub type Error = String;
 
@@ -80,7 +81,8 @@ pub struct Data {
     pub by: Carrier,
     pub quantity: Quantity,
     pub load_number: LoadNumber,
-    pub cubicage: Cubicage
+    pub cubicage: Cubicage,
+    pub key: Key
 }
 
 // -------------------FOR LOADS---------------------------------
@@ -101,6 +103,7 @@ pub struct Load{
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct Delivery {
     pub danfe: Vec<DANFE>,
+    pub key: Vec<Key>,
     pub to: Client,
     pub quantity: Quantity,
     pub price: Price,
