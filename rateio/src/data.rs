@@ -369,6 +369,12 @@ mod parsing{
 
         }
 
+        for (_,data) in loads.iter_mut(){
+            for (_, load) in data.iter_mut(){
+                load.update_load_delivery_data();
+            }
+        }
+
         (loads,errors)
     }
 }
@@ -612,6 +618,7 @@ mod tests{
         ]);
         
         let (result,errors) = parsing::concat_data(&data, &email);
+        println!("{:?}", result);
 
         assert_eq!(errors.len(), 0);
 
@@ -619,7 +626,7 @@ mod tests{
 
         assert_eq!(from_12.license_plate, "bbbd");
         assert_eq!(from_12.total_price, 100.0);
-        assert_eq!(from_12.total_cubicage, 0.0);
+        assert_eq!(from_12.total_cubicage, 1.3);
         assert_eq!(from_12.deliveries.len(), 1);
 
         let from_12_deliveries = &from_12.deliveries[0];
@@ -629,14 +636,14 @@ mod tests{
         assert_eq!(from_12_deliveries.key[0],"123");
         assert_eq!(from_12_deliveries.to,"1");
         assert_eq!(from_12_deliveries.quantity,10);
-        assert_eq!(from_12_deliveries.price,0.0);
+        assert_eq!(from_12_deliveries.price,100.0);
         assert_eq!(from_12_deliveries.cubicage,1.3);
 
         let from_13 = result.get("13").unwrap().get(&20).unwrap();
 
         assert_eq!(from_13.license_plate, "ddda");
         assert_eq!(from_13.total_price, 200.0);
-        assert_eq!(from_13.total_cubicage, 0.0);
+        assert_eq!(from_13.total_cubicage, 1.35);
         assert_eq!(from_13.deliveries.len(), 1);
 
         let from_13_deliveries = &from_13.deliveries[0];
@@ -646,7 +653,7 @@ mod tests{
         assert_eq!(from_13_deliveries.key[0],"1234");
         assert_eq!(from_13_deliveries.to,"2");
         assert_eq!(from_13_deliveries.quantity,100);
-        assert_eq!(from_13_deliveries.price,0.0);
+        assert_eq!(from_13_deliveries.price,200.0);
         assert_eq!(from_13_deliveries.cubicage,1.35);
 
 

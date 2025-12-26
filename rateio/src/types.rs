@@ -128,6 +128,7 @@ impl Load {
     pub fn update_load_delivery_data(&mut self){
         self.calculate_total_cubicage(); 
         self.calculate_price_for_each_delivery();
+        self.concat_bonus();
 
     }
 
@@ -141,17 +142,49 @@ impl Load {
         }
     }
 
-    fn calculate_total_cubicage(&mut self) -> Cubicage {
+    fn calculate_total_cubicage(&mut self){
         self.total_cubicage = self.deliveries
             .iter()
             .map(|delivery| delivery.cubicage)
             .reduce(|a,b| a + b)
             .expect("Failed on get total value");
-
-        self.total_cubicage
     }
 
-    //fn concat_bonus
+    fn concat_bonus(&mut self){
+        let mut names = HashMap::<String, usize>::new();
+        let mut to_remove = Vec::<usize>::new();
+
+        let mut new_data = self.deliveries.clone();
+
+        for (index,delivery) in self.deliveries.iter().enumerate(){
+
+            match names.get(&delivery.to){
+                Some(value) => {
+                    let first_delivery = &mut new_data[*value];
+                    first_delivery.price += delivery.price;
+                    first_delivery.quantity += delivery.quantity;
+                    first_delivery.cubicage += delivery.cubicage;
+
+                    first_delivery.key = vec![first_delivery.key.clone(), delivery.key.clone()].concat();
+                    first_delivery.danfe = vec![first_delivery.danfe.clone(), delivery.danfe.clone()].concat();
+                    to_remove.push(index);
+                },
+                None => {
+                    names.insert(delivery.to.clone(), index);
+                    continue;
+                }
+            };
+        }
+
+
+        self.deliveries = new_data.iter()
+                .enumerate()
+                .filter(|(i,_)| !to_remove.contains(i))
+                .map(|(_, item)| item.clone())
+                .collect::<Vec<_>>();
+
+
+    }
 }
 
 
