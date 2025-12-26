@@ -291,9 +291,9 @@ mod parsing{
         ))
     }
 
-    pub fn parse_multiple(files:&Vec<PathBuf>) -> Result<(HashMap<LoadNumber, Vec<Data>>, Vec<Error>), ParseErrors>{
+    pub fn parse_multiple(files:&Vec<PathBuf>) -> Result<(MultipleData, Vec<Error>), ParseErrors>{
         
-        let mut all_data = HashMap::<LoadNumber,Vec<Data>>::new();
+        let mut all_data = MultipleData::new();
         let mut errors = Vec::new();
 
         for file in files.iter(){
@@ -313,6 +313,64 @@ mod parsing{
 
         Ok((all_data,errors))
     }
+
+    pub fn concat_data(data:&MultipleData, email_data:&EmailData) -> (Loads, Vec<Error>){
+        let mut loads = Loads::new();
+        let mut errors = Vec::<Error>::new();
+        
+        for (load_number, data_loads) in data.iter() {
+            
+            for d in data_loads{
+                
+                if !loads.contains_key(&d.by){
+                    loads.insert(d.by.clone(), LoadsByNumberData::new());
+                }
+                
+                let load_email_data = match email_data.get(load_number){
+                    Some(data) => {data},
+                    None => {
+                        errors.push(String::from(format!("Load {} not found on email", load_number)));
+                        continue;
+                    }
+                };
+
+                if let Some(carrier_loads) = loads.get_mut(&d.by) { 
+
+                    let delivery = Delivery {
+                        danfe: vec![d.danfe.clone()],
+                        key: vec![d.key.clone()],
+                        to: d.to.clone(),
+                        quantity: d.quantity,
+                        cubicage: d.cubicage,
+                        ..Default::default()
+                    };
+
+                    
+                    if !carrier_loads.contains_key(load_number) {
+                        let mut load = Load{
+                            license_plate: load_email_data.license_plate.clone(),
+                            total_price: load_email_data.price,
+                            ..Default::default()
+                        };
+                        
+                        load.deliveries.push(delivery);
+                        carrier_loads.insert(*load_number, load);
+                    }else{
+
+                        if let Some(load_data) = carrier_loads.get_mut(load_number) {
+                            load_data.deliveries.push(delivery);
+                        };
+
+                    }
+
+                };
+
+            }
+
+        }
+
+        (loads,errors)
+    }
 }
 
 
@@ -324,6 +382,7 @@ mod tests{
     use quick_xml::events::BytesText;
 
     use crate::constants::*;
+    use crate::types::*;
     use crate::types::ParseErrors;
 
     use super::*;
@@ -512,5 +571,84 @@ mod tests{
         assert_eq!(errors.len(), 6); // cubicage and load number are in the same tag
 
         Ok(())
+    }
+
+    #[test]
+    fn test_concat_data() {
+        let data = HashMap::from([
+            (10, vec![
+             Data{
+                 danfe: String::from("123"),
+                 to: String::from("1"),
+                 by: String::from("12"),
+                 quantity: 10,
+                 load_number:10,
+                 cubicage: 1.3,
+                 key: String::from("123")
+             }
+            ]),
+            (20, vec![
+             Data{
+                 danfe: String::from("1235"),
+                 to: String::from("2"),
+                 by: String::from("13"),
+                 quantity: 100,
+                 load_number:20,
+                 cubicage: 1.35,
+                 key: String::from("1234")
+             }
+            ]),
+        ]); 
+        
+        let email = HashMap::from([
+            (10, EmailLoadData{
+                price: 100.0,
+                license_plate: String::from("bbbd"),
+            }),
+            (20,EmailLoadData{
+                price: 200.0,
+                license_plate: String::from("ddda")
+            })
+        ]);
+        
+        let (result,errors) = parsing::concat_data(&data, &email);
+
+        assert_eq!(errors.len(), 0);
+
+        let from_12 = result.get("12").unwrap().get(&10).unwrap();
+
+        assert_eq!(from_12.license_plate, "bbbd");
+        assert_eq!(from_12.total_price, 100.0);
+        assert_eq!(from_12.total_cubicage, 0.0);
+        assert_eq!(from_12.deliveries.len(), 1);
+
+        let from_12_deliveries = &from_12.deliveries[0];
+        assert_eq!(from_12_deliveries.danfe.len(),1);
+        assert_eq!(from_12_deliveries.key.len(),1);
+        assert_eq!(from_12_deliveries.danfe[0],"123");
+        assert_eq!(from_12_deliveries.key[0],"123");
+        assert_eq!(from_12_deliveries.to,"1");
+        assert_eq!(from_12_deliveries.quantity,10);
+        assert_eq!(from_12_deliveries.price,0.0);
+        assert_eq!(from_12_deliveries.cubicage,1.3);
+
+        let from_13 = result.get("13").unwrap().get(&20).unwrap();
+
+        assert_eq!(from_13.license_plate, "ddda");
+        assert_eq!(from_13.total_price, 200.0);
+        assert_eq!(from_13.total_cubicage, 0.0);
+        assert_eq!(from_13.deliveries.len(), 1);
+
+        let from_13_deliveries = &from_13.deliveries[0];
+        assert_eq!(from_13_deliveries.danfe.len(),1);
+        assert_eq!(from_13_deliveries.key.len(),1);
+        assert_eq!(from_13_deliveries.danfe[0],"1235");
+        assert_eq!(from_13_deliveries.key[0],"1234");
+        assert_eq!(from_13_deliveries.to,"2");
+        assert_eq!(from_13_deliveries.quantity,100);
+        assert_eq!(from_13_deliveries.price,0.0);
+        assert_eq!(from_13_deliveries.cubicage,1.35);
+
+
     }
 }

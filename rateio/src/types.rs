@@ -85,9 +85,12 @@ pub struct Data {
     pub key: Key
 }
 
+pub type MultipleData = HashMap<LoadNumber, Vec<Data>>;
+
 // -------------------FOR LOADS---------------------------------
 
-pub type Loads = HashMap<Carrier, Vec<Load>>;
+pub type LoadsByNumberData = HashMap<LoadNumber, Load>;
+pub type Loads = HashMap<Carrier, LoadsByNumberData>;
 
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct Load{
@@ -95,7 +98,6 @@ pub struct Load{
     pub license_plate: LicensePlate,
     pub total_price: Price,
     pub total_cubicage: Cubicage,
-    pub numer: LoadNumber
 }
 
 // -------------------FOR DELIVERY---------------------------------
@@ -148,6 +150,8 @@ impl Load {
 
         self.total_cubicage
     }
+
+    //fn concat_bonus
 }
 
 
