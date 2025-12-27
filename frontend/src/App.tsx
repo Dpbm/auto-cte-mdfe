@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import type { ButtonClick } from '@customTypes/events';
+import type { RateioData } from '@customTypes/api_data';
 
 import { getData } from "./utils/api";
 

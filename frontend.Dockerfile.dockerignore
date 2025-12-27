@@ -1,0 +1,7 @@
+*
+!frontend/
+frontend/.env*
+frontend/dist/
+frontend/.vscode/
+frontend/node_modules/
+!nginx/

@@ -16,12 +16,12 @@ const DataTable = ({deliveries}:DataTableProps) => (
 	<table className="table-fixed border-separate border-spacing-y-2">
 
 		<colgroup>
-			<col class="w-2/8"/>
-			<col class="w-1/8"/>
-			<col class="w-1/8"/>
-			<col class="w-1/8"/>
-			<col class="w-1/8"/>
-			<col class="w-2/8"/>
+			<col className="w-2/8"/>
+			<col className="w-1/8"/>
+			<col className="w-1/8"/>
+			<col className="w-1/8"/>
+			<col className="w-1/8"/>
+			<col className="w-2/8"/>
 		</colgroup>
 
 		  <thead>
@@ -67,7 +67,7 @@ export const DataShow = ({data,error}:DataShowProps) => {
   const carriers = Object.keys(loads);
   if(carriers.length <= 0) return <p className="text-4xl p-10">Nenhuma transportadora!</p>;
 
-  const errors = data.errors;
+  const errors : string[] = !data ? [] : data.errors;
 
   return <div className="p-5 h-full">
 		<ul className="max-h-3/4 min-h-3/4 overflow-scroll">{
@@ -81,9 +81,8 @@ export const DataShow = ({data,error}:DataShowProps) => {
 				{(loadNumbers.length <= 0) ? 
 					<p className="text-red-700 mb-10">Nenhum dado para a transportadora!</p> :
 
-
 					loadNumbers.map((loadNumber) => {
-						const loadData = carrierData[loadNumber];
+						const loadData = carrierData[parseInt(loadNumber) ?? 0];
 						const deliveries = loadData.deliveries;
 
 						return <div key={loadNumber} className="p-5 mb-10 border-1 border-stone-800 rounded-xl shadow-md">
@@ -102,9 +101,12 @@ export const DataShow = ({data,error}:DataShowProps) => {
 
 	  <footer className="max-h-1/4 overflow-scroll">
 		  <h1 className="text-2xl text-red-500 sticky top-0 bg-white">Erros durante o rateio</h1>
-		  <ul>
-			  {errors.map((error,i) => <li key={i}>{error}</li>)}
-		  </ul>
+		  {errors.length <= 0 ? 
+			<p>Nenhum erro encontrado!</p> :
+			  <ul>
+				  {errors.map((error,i) => <li key={i}>{error}</li>)}
+			  </ul>
+		}
 	  </footer>
 	</div>;
 }
