@@ -28,4 +28,6 @@ EXPOSE $PORT
 HEALTHCHECK --interval=10s \
   CMD curl -I -sf -o /dev/null http://$HOST:$PORT/health || exit 1
 
+ENV RUST_LOG=error
+
 CMD ["/app/rateio-api"]

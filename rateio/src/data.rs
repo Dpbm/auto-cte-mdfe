@@ -86,7 +86,7 @@ mod tags{
 }
 
 
-mod parsing{
+pub mod parsing{
     use std::collections::HashMap;
     use std::path::PathBuf;
 

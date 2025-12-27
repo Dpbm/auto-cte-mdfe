@@ -9,28 +9,30 @@ export type Data = {
 };
 
 export type Load = {
-  data: Data[];
+  deliveries: Delivery[];
   license_plate: string;
   total_price: number;
   total_cubicage: number;
 };
 
-type EmailLoadData = {
-  load_number:number;
-  price: number;
-  license_plate:string;
+export type Delivery = {
+	danfe: string[];
+	key: string[];
+	to: string;
+	quantity: number;
+	price: number;
+	cubicage: number;
+};
+
+export type LoadsByNumber = {
+	[key: number]: Load;
 };
 
 export type LoadData = {
-    [key:number]:Load;
-};
-
-type EmailData = {
-    [key:number]:EmailLoadData;
+	[key:string]:LoadsByNumber;
 };
 
 export type RateioData = {
   loads: LoadData;
-  email_data: EmailData;
   errors: string[];
 };

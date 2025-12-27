@@ -22,6 +22,8 @@ services:
     image: traefik:v3.4
     container_name: traefik
     restart: unless-stopped
+    depends_on: 
+      - rateio
     security_opt:
       - no-new-privileges:true
     ports:

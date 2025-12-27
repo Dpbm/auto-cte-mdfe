@@ -21,6 +21,7 @@ async function getData(data:string) : Promise<APIReturn> {
       },
       body: data
     });
+	
     const returnData = await result.json();
 
     return {
@@ -45,60 +46,56 @@ const DataShow = ({data,error}:DataShowProps) => {
 
   const loads : LoadData | null = !data ? null : data.loads;
   if(!loads) return <p className="text-4xl p-10">Nenhum valor a mostrar</p>;
-
-  const loadsNumbers = Object.keys(loads);
-
-  const loadsByTransp = {};
-
-  for(const load of Object.values(loads)){
-    if(loadsByTransp[load.data.])
-  }
-
+	console.log(Object.keys(loads));	
   return <>
-    {loadsNumbers.map((loadNumber) => {
-      const load = loads[parseInt(loadNumber)];
-      const totalPrice = load?.total_price ?? 0.0;
-      const totalCubicage = load?.total_cubicage ?? 0.0;
-      const licensePlate = load?.license_plate ?? '';
-      const transp =  load?.data[0].by ?? '';
-
-      return <div key={loadNumber}>
-        <h1 className="text-3xl">{loadNumber}</h1>
-        <h2 className="text-2xl">{transp} - {licensePlate} - R${totalPrice.toFixed(2)} - {totalCubicage}</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>danfe</th>
-              <th>de</th>
-              <th>para</th>
-              <th>carga</th>
-              <th>cubicagem</th>
-              <th>quantidade</th>
-              <th>frete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              load?.data.map((item) => <tr key={item.danfe}>
-                <td>{item.danfe}</td>
-                <td>{item.by}</td>
-                <td>{item.to}</td>
-                <td>{item.load_number}</td>
-                <td>{item.cubicage}</td>
-                <td>{item.quantity}</td>
-                <td>{item.price}</td>
-              </tr>)
-            } 
-
-          </tbody>
-        </table>
-      </div>;
-
-    }
-    
-    )} 
+  <p>Heloo</p>
   </>;
 
+  //return <>
+  //  {loadsNumbers.map((loadNumber) => {
+  //    const load = loads[parseInt(loadNumber)];
+  //    const totalPrice = load?.total_price ?? 0.0;
+  //    const totalCubicage = load?.total_cubicage ?? 0.0;
+  //    const licensePlate = load?.license_plate ?? '';
+  //    const transp =  load?.data[0].by ?? '';
+  //
+  //    return <div key={loadNumber}>
+  //      <h1 className="text-3xl">{loadNumber}</h1>
+  //      <h2 className="text-2xl">{transp} - {licensePlate} - R${totalPrice.toFixed(2)} - {totalCubicage}</h2>
+  //      <table>
+  //        <thead>
+  //          <tr>
+  //            <th>danfe</th>
+  //            <th>de</th>
+  //            <th>para</th>
+  //            <th>carga</th>
+  //            <th>cubicagem</th>
+  //            <th>quantidade</th>
+  //            <th>frete</th>
+  //          </tr>
+  //        </thead>
+  //        <tbody>
+  //          {
+  //            load?.data.map((item) => <tr key={item.danfe}>
+  //              <td>{item.danfe}</td>
+  //              <td>{item.by}</td>
+  //              <td>{item.to}</td>
+  //              <td>{item.load_number}</td>
+  //              <td>{item.cubicage}</td>
+  //              <td>{item.quantity}</td>
+  //              <td>{item.price}</td>
+  //            </tr>)
+  //          } 
+  //
+  //        </tbody>
+  //      </table>
+  //    </div>;
+  //
+  //  }
+  //
+  //  )} 
+  //</>;
+  //
 
 
 
