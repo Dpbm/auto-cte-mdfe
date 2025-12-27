@@ -1,106 +1,12 @@
 import { useState } from "react"
 
-import type { LoadData, RateioData } from '@customTypes/api_data';
 import type { ButtonClick } from '@customTypes/events';
+
+import { getData } from "./utils/api";
 
 import { Button } from "./components/button";
 import { TextArea } from "./components/textarea";
-
-type APIReturn = {
-  data: RateioData | null; 
-  error: string | null;
-};
-
-async function getData(data:string) : Promise<APIReturn> {
-  const url = `${import.meta.env.VITE_API_BASE_URL}/data`
-  try{
-    const result = await fetch(url, {
-      method: "POST",
-      headers: {
-        'Content-type': 'text/plain',
-      },
-      body: data
-    });
-	
-    const returnData = await result.json();
-
-    return {
-      data: returnData,
-      error: null
-    };
-  }catch(error){
-    return {
-      data: null,
-      error: String(error)
-    };
-  }
-}
-
-type DataShowProps = {
-  data:RateioData|null,
-  error:string|null
-};
-
-const DataShow = ({data,error}:DataShowProps) => {
-  if(error) return <p className="text-4xl text-red-600 p-10">Erro: {error}</p>;
-
-  const loads : LoadData | null = !data ? null : data.loads;
-  if(!loads) return <p className="text-4xl p-10">Nenhum valor a mostrar</p>;
-	console.log(Object.keys(loads));	
-  return <>
-  <p>Heloo</p>
-  </>;
-
-  //return <>
-  //  {loadsNumbers.map((loadNumber) => {
-  //    const load = loads[parseInt(loadNumber)];
-  //    const totalPrice = load?.total_price ?? 0.0;
-  //    const totalCubicage = load?.total_cubicage ?? 0.0;
-  //    const licensePlate = load?.license_plate ?? '';
-  //    const transp =  load?.data[0].by ?? '';
-  //
-  //    return <div key={loadNumber}>
-  //      <h1 className="text-3xl">{loadNumber}</h1>
-  //      <h2 className="text-2xl">{transp} - {licensePlate} - R${totalPrice.toFixed(2)} - {totalCubicage}</h2>
-  //      <table>
-  //        <thead>
-  //          <tr>
-  //            <th>danfe</th>
-  //            <th>de</th>
-  //            <th>para</th>
-  //            <th>carga</th>
-  //            <th>cubicagem</th>
-  //            <th>quantidade</th>
-  //            <th>frete</th>
-  //          </tr>
-  //        </thead>
-  //        <tbody>
-  //          {
-  //            load?.data.map((item) => <tr key={item.danfe}>
-  //              <td>{item.danfe}</td>
-  //              <td>{item.by}</td>
-  //              <td>{item.to}</td>
-  //              <td>{item.load_number}</td>
-  //              <td>{item.cubicage}</td>
-  //              <td>{item.quantity}</td>
-  //              <td>{item.price}</td>
-  //            </tr>)
-  //          } 
-  //
-  //        </tbody>
-  //      </table>
-  //    </div>;
-  //
-  //  }
-  //
-  //  )} 
-  //</>;
-  //
-
-
-
-
-}
+import { DataShow } from "./components/data"
 
 
 function App() {
@@ -110,7 +16,7 @@ function App() {
   const [error,setError] = useState<string|null>(null);
 
   async function handleSend(event:ButtonClick){
-    if(!event) return;
+    if(!event || !query) return;
     event.preventDefault();
     event.stopPropagation();
 
@@ -123,7 +29,7 @@ function App() {
 
   return (
     <main className="flex justify-between p-5 h-screen">
-      <aside className="w-100 h-full p-5">
+      <aside className="w-100 h-full p-2">
         <TextArea callback={(event) => setQuery(event.target.value)} value={query} />
         <Button onClick={(event) => handleSend(event)} />
       </aside>
@@ -134,4 +40,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
