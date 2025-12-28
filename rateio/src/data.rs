@@ -498,7 +498,7 @@ mod tests{
     }
 
     #[test]
-    fn test_match_text(){
+    fn test_match_text() -> Result<(), ParseErrors>{
         let mut flags : u8 = 1;
         let mut data = HashMap::new();
 
@@ -507,7 +507,7 @@ mod tests{
 
         for power in 0..=7{
             flags <<= power;
-            tags::match_text(&flags, &text, &mut data);
+            tags::match_text(&flags, &text, &mut data)?;
         }
 
         for (_,v) in data.iter(){
@@ -517,10 +517,12 @@ mod tests{
         
         let all_flags : u8 = 255;
         let mut data = HashMap::new();
-        tags::match_text(&all_flags, &text, &mut data);
+        tags::match_text(&all_flags, &text, &mut data)?;
         for (_,v) in data.iter(){
             assert_eq!(v, base_text);
         }
+
+        Ok(())
     }
 
     #[test]
