@@ -1,0 +1,22 @@
+name: Release
+on:
+    push:
+        tags:
+            - '*'
+
+jobs:
+    test:
+      uses: ./.github/workflows/tests-reusable.yml
+
+    release:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        needs: test
+
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: create release
+              uses: ncipollo/release-action@v1
