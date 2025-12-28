@@ -3,6 +3,7 @@
 [![Publish to Docker Hub](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/dockerhub.yml/badge.svg)](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/dockerhub.yml)
 [![Publish to GHCR](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/ghcr.yml/badge.svg)](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/ghcr.yml)
 [![Run Tests on push](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/run-tests.yml/badge.svg)](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/run-tests.yml)
+[![Release](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/release.yml/badge.svg)](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/release.yml)
 
 Este projeto consiste em uma aplicação para me auxiliar na emissão de CT-es e MDF-es. 
 
