@@ -1,0 +1,62 @@
+services:
+  rateio:
+    container_name: "rateio"
+    image: ghcr.io/dpbm/rateio
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rateio.rule=PathPrefix(`/rateio`)"
+      - "traefik.http.routers.rateio.entrypoints=web"
+      - "traefik.http.services.rateio.loadbalancer.server.port=4000"
+      - "traefik.http.middlewares.rateio-strip.stripprefix.prefixes=/rateio"
+      - "traefik.http.routers.rateio.middlewares=rateio-strip"
+    volumes:
+      # set the path for your data
+      #- <your-path>:/data/:ro
+    networks:
+      - proxy
+
+  dashboard:
+    container_name: "dashboard"
+    image: ghcr.io/dpbm/rateio_frontend
+    depends_on: 
+      - rateio
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/dashboard"
+      - "traefik.http.middlewares.dashboard-add.addprefix.prefix=/dashboard"
+
+      - "traefik.http.routers.dashboard-index.rule=Path(`/dashboard`)"
+      - "traefik.http.routers.dashboard-index.entrypoints=web"
+      - "traefik.http.routers.dashboard-index.service=dashboard-index-service"
+      - "traefik.http.routers.dashboard-index.middlewares=dashboard-strip"
+      - "traefik.http.services.dashboard-index-service.loadbalancer.server.port=80"
+
+      - "traefik.http.routers.dashboard-assets.rule=PathPrefix(`/assets`)"
+      - "traefik.http.routers.dashboard-assets.entrypoints=web"
+      - "traefik.http.routers.dashboard-assets.service=dashboard-assets-service"
+      - "traefik.http.routers.dashboard-assets.middlewares=dashboard-add"
+      - "traefik.http.services.dashboard-assets-service.loadbalancer.server.port=80"
+    networks:
+      - proxy
+
+  traefik:
+    image: traefik:v3.4
+    container_name: traefik
+    restart: unless-stopped
+    depends_on: 
+      - rateio
+      - dashboard
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "3500:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/settings.yaml:/traefik.yml:ro
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: false
