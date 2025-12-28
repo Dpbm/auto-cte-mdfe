@@ -7,7 +7,8 @@ jobs:
     name: Build and test rateio lib - Cargo
     runs-on: ubuntu-latest
     defaults:
-      working-directory: ./rateio
+      run:
+        working-directory: ./rateio
 
     steps:
       - uses: actions/checkout@v4
