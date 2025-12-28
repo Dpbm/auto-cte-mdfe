@@ -1,0 +1,6 @@
+name: Run Tests on push
+on: [push]
+
+jobs:
+  run_tets:
+    uses: Dpbm/auto-cte-mdfe/.github/workflows/tests-reusable.yml

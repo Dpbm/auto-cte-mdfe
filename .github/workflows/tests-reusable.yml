@@ -1,0 +1,22 @@
+name: Run Tests (Reusable Workflow)
+on:
+  workflow_call
+
+jobs:
+  build_test_rateio_lib:
+    name: Build and test rateio lib - Cargo
+    runs-on: ubuntu-latest
+    defaults:
+      working-directory: ./rateio
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup rust
+        run: rustup update stable && rustup default stable
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Test
+        run: cargo test --verbose
