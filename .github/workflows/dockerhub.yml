@@ -5,7 +5,7 @@ on:
 
 jobs:
     test:
-      uses: Dpbm/auto-cte-mdfe/.github/workflows/tests-reusable.yml
+      uses: ./.github/workflows/tests-reusable.yml
 
     push_rateio:
         name: Push Docker image (Rateio)
