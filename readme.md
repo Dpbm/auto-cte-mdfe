@@ -1,4 +1,9 @@
 # AUTO CT-E/MDF-E
+
+[![Publish to Docker Hub](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/dockerhub.yml/badge.svg)](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/dockerhub.yml)
+[![Publish to GHCR](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/ghcr.yml/badge.svg)](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/ghcr.yml)
+[![Run Tests on push](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/run-tests.yml/badge.svg)](https://github.com/Dpbm/auto-cte-mdfe/actions/workflows/run-tests.yml)
+
 Este projeto consiste em uma aplicação para me auxiliar na emissão de CT-es e MDF-es. 
 
 Este tipo de documento normalmente necessita de trabalho manual para ser emitido. Meu objetivo aqui, é automatizar o máximo que puder para facilitar o meu trabalho.
