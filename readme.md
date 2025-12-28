@@ -31,6 +31,14 @@ Aqui estão as rotas que a API em rust Aceita:
 
 ![rotas](./assets/routes.png)
 
+E aqui o dashboard do traefik, o qual pode ser acessado em: `http://localhost:3500`.
+
+![traefik](./assets/traefik.png)
+
+## Aplicação Web
+
+![página](./assets/web.png)
+
 
 ## Como rodar
 
