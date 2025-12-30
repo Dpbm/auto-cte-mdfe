@@ -11,6 +11,11 @@ type DataTableProps = {
 	deliveries: Delivery[]
 };
 
+function fixPrice(price:number):string{
+	console.log("ALAAKAKAKAKAK ", price)
+	return price.toString().replaceAll(".",",");
+}
+
 
 const DataTable = ({deliveries}:DataTableProps) => (
 	<table className="table-fixed border-separate border-spacing-y-2">
@@ -40,8 +45,8 @@ const DataTable = ({deliveries}:DataTableProps) => (
 			<td>{item.to}</td>
 			<td 
 				className="cursor-copy"
-				onClick={() => copyToClipboard(item.price.toString())}>
-				R$ {item.price}
+				onClick={() => copyToClipboard(fixPrice(item.price))}>
+				R$ {fixPrice(item.price)}
 			</td>
 			<td 
 				className="cursor-copy"
@@ -88,7 +93,7 @@ export const DataShow = ({data,error}:DataShowProps) => {
 						return <div key={loadNumber} className="p-5 mb-10 border-1 border-stone-800 rounded-xl shadow-md">
 							<header className="mb-5">
 								<h1 className="text-xl bold">Carga {String(loadNumber)}</h1>
-								<h2 className="text-xs italic">{loadData.license_plate.toUpperCase()} - R$ {loadData.total_price} - {loadData.total_cubicage}</h2>
+								<h2 className="text-xs italic">{loadData.license_plate.toUpperCase()} - R$ {fixPrice(loadData.total_price)} - {loadData.total_cubicage}</h2>
 							</header>
 							<DataTable deliveries={deliveries} />
 

@@ -137,9 +137,15 @@ impl Load {
             return;
         }
 
+        let mut irregular_total = 0.0;
+
         for delivery in &mut self.deliveries {
-            delivery.price = round_price(self.total_price*(delivery.cubicage/self.total_cubicage));
+            let value = round_price(self.total_price*(delivery.cubicage/self.total_cubicage));
+            irregular_total += value;
+            delivery.price = value;
         }
+
+        self.deliveries[0].price = (self.total_price-irregular_total) + self.deliveries[0].price;
     }
 
     fn calculate_total_cubicage(&mut self){
