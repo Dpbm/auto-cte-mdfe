@@ -323,7 +323,10 @@ pub mod parsing{
             for d in data_loads{
                 
                 if !loads.contains_key(&d.by){
-                    loads.insert(d.by.clone(), LoadsByNumberData::new());
+                    loads.insert(
+                        d.by.clone(), 
+                        LoadsDataByCarrier::default()
+                    );
                 }
                 
                 let load_email_data = match email_data.get(load_number){
@@ -346,7 +349,7 @@ pub mod parsing{
                     };
 
                     
-                    if !carrier_loads.contains_key(load_number) {
+                    if !carrier_loads.loads.contains_key(load_number) {
                         let mut load = Load{
                             license_plate: load_email_data.license_plate.clone(),
                             total_price: load_email_data.price,
@@ -354,10 +357,10 @@ pub mod parsing{
                         };
                         
                         load.deliveries.push(delivery);
-                        carrier_loads.insert(*load_number, load);
+                        carrier_loads.loads.insert(*load_number, load);
                     }else{
 
-                        if let Some(load_data) = carrier_loads.get_mut(load_number) {
+                        if let Some(load_data) = carrier_loads.loads.get_mut(load_number) {
                             load_data.deliveries.push(delivery);
                         };
 
@@ -370,7 +373,8 @@ pub mod parsing{
         }
 
         for (_,data) in loads.iter_mut(){
-            for (_, load) in data.iter_mut(){
+            data.get_correct_sequence_of_loads();
+            for (_, load) in data.loads.iter_mut(){
                 load.update_load_delivery_data();
             }
         }
@@ -624,7 +628,10 @@ mod tests{
 
         assert_eq!(errors.len(), 0);
 
-        let from_12 = result.get("12").unwrap().get(&10).unwrap();
+        let from_12 = result.get("12").unwrap().loads.get(&10).unwrap();
+        let from_12_seq = &result.get("12").unwrap().sequence;
+        assert_eq!(from_12_seq[0], 10);
+        assert_eq!(from_12_seq.len(), 1);
 
         assert_eq!(from_12.license_plate, "bbbd");
         assert_eq!(from_12.total_price, 100.0);
@@ -641,7 +648,10 @@ mod tests{
         assert_eq!(from_12_deliveries.price,100.0);
         assert_eq!(from_12_deliveries.cubicage,1.3);
 
-        let from_13 = result.get("13").unwrap().get(&20).unwrap();
+        let from_13 = result.get("13").unwrap().loads.get(&20).unwrap();
+        let from_13_seq = &result.get("13").unwrap().sequence;
+        assert_eq!(from_13_seq[0], 20);
+        assert_eq!(from_13_seq.len(), 1);
 
         assert_eq!(from_13.license_plate, "ddda");
         assert_eq!(from_13.total_price, 200.0);

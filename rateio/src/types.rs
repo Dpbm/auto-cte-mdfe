@@ -71,7 +71,7 @@ impl From<EncodingError> for ParseErrors {
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct Packet{
     pub loads: Loads,
-    pub errors: Vec<String>
+    pub errors: Vec<String>,
 }
 
 // -------------------INTERMEDIATE OBJS-------------------------
@@ -91,7 +91,14 @@ pub type MultipleData = HashMap<LoadNumber, Vec<Data>>;
 
 // -------------------FOR LOADS---------------------------------
 
-pub type Loads = HashMap<Carrier, LoadsByNumberData>;
+pub type Loads = HashMap<Carrier, LoadsDataByCarrier>;
+
+#[derive(Debug,Clone,Default,Serialize,Deserialize)]
+pub struct LoadsDataByCarrier{
+    pub loads: LoadsByNumberData,
+    pub sequence: Vec<LoadNumber>
+}
+
 pub type LoadsByNumberData = HashMap<LoadNumber, Load>;
 
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
@@ -134,6 +141,7 @@ type DANFENumber = u128;
 #[derive(Debug)]
 pub struct Node{
     pub value: DANFE,
+    pub load: LoadNumber, 
     value_number: DANFENumber,
     pub next: LinkedListElement,
     pub previous: LinkedListElementBackwards
@@ -162,7 +170,7 @@ impl LinkedList {
             *self.head.borrow_mut() = Some(node_pointer).into(); 
                                                                 
         }
-        else { return; } //return an error maybe
+        else { return; } //TODO: return an error maybe
     }
 
     fn switch_tail(&mut self, last_node:&Rc<Node>,  mut node:Node){
@@ -189,12 +197,13 @@ impl LinkedList {
     }
 
 
-    pub fn add_between(&mut self, value:DANFE) -> Result<(), ParseErrors> {
+    pub fn add_between(&mut self, value:DANFE, load:LoadNumber) -> Result<(), ParseErrors> {
 
         let value_danfe_parsed = value.clone().as_str().parse::<u128>()?; 
 
         let new_node = Node{
             value: value.clone(),
+            load: load,
             value_number: value_danfe_parsed,
             next: None.into(),
             previous: None.into()
@@ -204,8 +213,7 @@ impl LinkedList {
         if let Some(head) = old_head {
             if head.value_number > new_node.value_number{
                 self.switch_head(new_node);
-                return Ok(());
-            }
+                return Ok(()); }
 
             let mut current_node = head;
             loop{
@@ -244,7 +252,6 @@ impl Load {
         self.calculate_total_cubicage(); 
         self.calculate_price_for_each_delivery();
         self.concat_bonus();
-
     }
 
     fn calculate_price_for_each_delivery(&mut self){
@@ -308,6 +315,33 @@ impl Load {
     }
 }
 
+
+impl LoadsDataByCarrier{ 
+    pub fn get_correct_sequence_of_loads(&mut self){
+        let mut linked_list = LinkedList{head:None.into()};
+        
+        for (load,val) in self.loads.iter(){
+            for delivery in &val.deliveries{
+                let _ = linked_list.add_between(delivery.danfe[0].clone(), *load);
+            }
+        }
+        
+        let mut loads = vec![]; 
+        let mut current_node = linked_list.head.borrow().clone();
+        loop{
+            if let Some(value) = current_node{
+                loads.push(value.load);
+                current_node = value.next.borrow().clone();
+            }else{
+                break;
+            }
+        }
+
+        self.sequence = loads;        
+
+    }
+}
+
 #[cfg(test)]
 mod tests{
     
@@ -321,7 +355,7 @@ mod tests{
             panic!("Should be none");
         }
 
-        let _ = list.add_between(String::from("12345"));
+        let _ = list.add_between(String::from("12345"),0);
         if let Some(data) = &*list.head.borrow(){
             assert_eq!(data.value, String::from("12345"));
         }
@@ -330,8 +364,8 @@ mod tests{
     #[test]
     fn test_linkedlist_switch_head(){
         let mut list = LinkedList{head:None.into()};
-        let _ = list.add_between(String::from("12345"));
-        let _ = list.add_between(String::from("00001"));
+        let _ = list.add_between(String::from("12345"),0);
+        let _ = list.add_between(String::from("00001"),0);
 
         if let Some(data) = &*list.head.borrow(){
             assert_eq!(data.value, String::from("00001"));
@@ -349,8 +383,8 @@ mod tests{
     #[test]
     fn test_linkedlist_add_tail(){
         let mut list = LinkedList{head:None.into()};
-        let _ = list.add_between(String::from("00001"));
-        let _ = list.add_between(String::from("12345"));
+        let _ = list.add_between(String::from("00001"),0);
+        let _ = list.add_between(String::from("12345"),0);
 
         if let Some(data) = &*list.head.borrow(){
             assert_eq!(data.value, String::from("00001"));
@@ -370,9 +404,9 @@ mod tests{
     #[test]
     fn test_linkedlist_add_in_the_middle(){
         let mut list = LinkedList{head:None.into()};
-        let _ = list.add_between(String::from("00001"));
-        let _ = list.add_between(String::from("22345"));
-        let _ = list.add_between(String::from("12345"));
+        let _ = list.add_between(String::from("00001"),0);
+        let _ = list.add_between(String::from("22345"),0);
+        let _ = list.add_between(String::from("12345"),0);
 
         if let Some(data) = &*list.head.borrow(){
             assert_eq!(data.value, String::from("00001"));
@@ -388,10 +422,69 @@ mod tests{
 
                 
             }
-
-                
-
         }
 
+    }
+
+
+    #[test]
+    fn test_hashmap_get_loads_sequence(){
+        let mut data = 
+            LoadsDataByCarrier{
+
+                loads:HashMap::from([
+                    (4,Load{
+                        deliveries: vec![
+                            Delivery{
+                                danfe: vec![String::from("8")],
+                                key: vec![],
+                                to: String::from("D"),
+                                quantity:1,
+                                price: 10.0,
+                                cubicage:0.3
+                            }
+                        ],
+                        license_plate:String::from("1"),
+                        total_price:10.0,
+                        total_cubicage:0.0,
+                    }),
+                    (3,Load{
+                        deliveries: vec![
+                            Delivery{
+                                danfe: vec![String::from("3")],
+                                key: vec![],
+                                to: String::from("D"),
+                                quantity:1,
+                                price: 10.0,
+                                cubicage:0.3
+                            }
+                        ],
+                        license_plate:String::from("1"),
+                        total_price:10.0,
+                        total_cubicage:0.0,
+                    }),
+                    (1,Load{
+                        deliveries: vec![
+                            Delivery{
+                                danfe: vec![String::from("5")],
+                                key: vec![],
+                                to: String::from("D"),
+                                quantity:1,
+                                price: 10.0,
+                                cubicage:0.3
+                            }
+                        ],
+                        license_plate:String::from("1"),
+                        total_price:10.0,
+                        total_cubicage:0.0,
+                    }),
+                ]),
+            sequence: vec![],
+        };
+
+        data.get_correct_sequence_of_loads();
+        assert_eq!(data.sequence[0], 3);
+        assert_eq!(data.sequence[1], 1);
+        assert_eq!(data.sequence[2], 4);
     }
 }
