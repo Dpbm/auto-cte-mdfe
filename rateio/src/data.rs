@@ -89,7 +89,7 @@ mod tags{
 pub mod text{
     use crate::types::LoadNumber;
 
-    pub fn generate_email_text(loads:Vec<LoadNumber>) -> String{
+    pub fn generate_email_text(loads:&Vec<LoadNumber>) -> String{
         if loads.len() <= 0{
             return String::from("");
         }
@@ -403,6 +403,7 @@ pub mod parsing{
 
         for (_,data) in loads.iter_mut(){
             data.get_correct_sequence_of_loads();
+            data.get_email_text();
             for (_, load) in data.loads.iter_mut(){
                 load.update_load_delivery_data();
             }

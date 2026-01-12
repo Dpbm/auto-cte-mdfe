@@ -84,10 +84,11 @@ export const DataShow = ({data,error}:DataShowProps) => {
   return <div className="p-5 h-full">
 		<ul className="max-h-3/4 min-h-3/4 overflow-scroll">{
 		  carriers.map((carrier) => {
-			const {loads:LoadsData, sequence} = loads[carrier];
+			const {loads:LoadsData, sequence, email} = loads[carrier];
 
 			return <li key={carrier}>
 				<h1 className="text-3xl sticky top-0 bg-white mb-5">Cargas - {carrier}</h1>
+				<pre className="text-xs italic cursor-copy mb-5" onClick={() => copyToClipboard(email)}>{email}</pre>
 
 				{(sequence.length <= 0) ? 
 					<p className="text-red-700 mb-10">Nenhum dado para a transportadora!</p> :

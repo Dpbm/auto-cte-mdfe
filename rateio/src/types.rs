@@ -10,6 +10,7 @@ use quick_xml::encoding::EncodingError;
 use serde::{Deserialize, Serialize};
 
 use crate::math::round_price;
+use crate::data::text::generate_email_text;
 
 pub type TagName<'a> = &'a [u8];
 
@@ -72,7 +73,6 @@ impl From<EncodingError> for ParseErrors {
 pub struct Packet{
     pub loads: Loads,
     pub errors: Vec<String>,
-    pub email: String,
 }
 
 // -------------------INTERMEDIATE OBJS-------------------------
@@ -97,7 +97,8 @@ pub type Loads = HashMap<Carrier, LoadsDataByCarrier>;
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct LoadsDataByCarrier{
     pub loads: LoadsByNumberData,
-    pub sequence: Vec<LoadNumber>
+    pub sequence: Vec<LoadNumber>,
+    pub email: String
 }
 
 pub type LoadsByNumberData = HashMap<LoadNumber, Load>;
@@ -338,6 +339,10 @@ impl LoadsDataByCarrier{
 
         self.sequence = loads;        
 
+    }
+
+    pub fn get_email_text(&mut self){
+        self.email = generate_email_text(&self.sequence);
     }
 }
 

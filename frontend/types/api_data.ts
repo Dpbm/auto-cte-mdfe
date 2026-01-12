@@ -32,6 +32,7 @@ export type LoadData = {
 export type DataByCarrier = {
   loads: LoadsByNumber,
   sequence: number[],
+  email: string
 };
 
 export type LoadsByNumber = {
