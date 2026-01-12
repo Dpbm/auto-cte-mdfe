@@ -24,12 +24,18 @@ export type Delivery = {
 	cubicage: number;
 };
 
-export type LoadsByNumber = {
-	[key: number]: Load;
-};
 
 export type LoadData = {
-	[key:string]:LoadsByNumber;
+	[key:string]:DataByCarrier;
+};
+
+export type DataByCarrier = {
+  loads: LoadsByNumber,
+  sequence: number[],
+};
+
+export type LoadsByNumber = {
+	[key: number]: Load;
 };
 
 export type RateioData = {

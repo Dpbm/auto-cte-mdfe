@@ -211,7 +211,7 @@ impl LinkedList {
         
         let old_head = self.head.borrow().clone();
         if let Some(head) = old_head {
-            if head.value_number > new_node.value_number{
+            if head.value_number >= new_node.value_number{
                 self.switch_head(new_node);
                 return Ok(()); }
 
@@ -220,7 +220,7 @@ impl LinkedList {
                 let current_node_next_ref = current_node.next.borrow().clone();
                 if let Some(next_node) = current_node_next_ref {
                     
-                    if next_node.value_number > new_node.value_number {
+                    if next_node.value_number >= new_node.value_number {
                         break;
                     }
 
@@ -321,9 +321,7 @@ impl LoadsDataByCarrier{
         let mut linked_list = LinkedList{head:None.into()};
         
         for (load,val) in self.loads.iter(){
-            for delivery in &val.deliveries{
-                let _ = linked_list.add_between(delivery.danfe[0].clone(), *load);
-            }
+            let _ = linked_list.add_between(val.deliveries[0].danfe[0].clone(), *load);
         }
         
         let mut loads = vec![]; 

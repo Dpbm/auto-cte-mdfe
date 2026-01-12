@@ -12,7 +12,6 @@ type DataTableProps = {
 };
 
 function fixPrice(price:number):string{
-	console.log("ALAAKAKAKAKAK ", price)
 	return price.toString().replaceAll(".",",");
 }
 
@@ -54,10 +53,18 @@ const DataTable = ({deliveries}:DataTableProps) => (
 				{item.quantity}
 			</td>
 			<td>{item.cubicage}</td>
-			<td>{item.danfe.join("\n")}</td>
-			<td>{item.key.join("\n")}</td>
-		      </tr>)
-		    } 
+			<td>{item.danfe.map((danfe,index) => 
+					<p className="cursor-copy" 
+						key={index} 
+						onClick={() => copyToClipboard(danfe)}>{danfe}</p>)
+				}
+			</td>
+			<td>{item.key.map((key,index) => 
+					<p className="cursor-copy" 
+						key={index} 
+						onClick={() => copyToClipboard(key)}>{key}</p>)}
+			</td>
+		   </tr>)} 
 
 		  </tbody>
 	</table>
@@ -77,17 +84,16 @@ export const DataShow = ({data,error}:DataShowProps) => {
   return <div className="p-5 h-full">
 		<ul className="max-h-3/4 min-h-3/4 overflow-scroll">{
 		  carriers.map((carrier) => {
-			const carrierData = loads[carrier];
-			const loadNumbers = Object.keys(carrierData);
+			const {loads:LoadsData, sequence} = loads[carrier];
 
 			return <li key={carrier}>
 				<h1 className="text-3xl sticky top-0 bg-white mb-5">Cargas - {carrier}</h1>
 
-				{(loadNumbers.length <= 0) ? 
+				{(sequence.length <= 0) ? 
 					<p className="text-red-700 mb-10">Nenhum dado para a transportadora!</p> :
 
-					loadNumbers.map((loadNumber) => {
-						const loadData = carrierData[parseInt(loadNumber) ?? 0];
+					sequence.map((loadNumber) => {
+						const loadData = LoadsData[loadNumber];
 						const deliveries = loadData.deliveries;
 
 						return <div key={loadNumber} className="p-5 mb-10 border-1 border-stone-800 rounded-xl shadow-md">
