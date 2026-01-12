@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::rc::{Rc,Weak};
+use std::cell::RefCell;
 use std::num::{ParseIntError, ParseFloatError};
 use std::fmt;
 
@@ -28,7 +30,7 @@ pub enum ParseErrors{
    ParseInt(ParseIntError),
    ParseFloat(ParseFloatError),
    XMLError(quick_xml_ERROR),
-   EncodingXMLError(EncodingError)
+   EncodingXMLError(EncodingError),
 }
 
 impl fmt::Display for ParseErrors{
@@ -89,8 +91,8 @@ pub type MultipleData = HashMap<LoadNumber, Vec<Data>>;
 
 // -------------------FOR LOADS---------------------------------
 
-pub type LoadsByNumberData = HashMap<LoadNumber, Load>;
 pub type Loads = HashMap<Carrier, LoadsByNumberData>;
+pub type LoadsByNumberData = HashMap<LoadNumber, Load>;
 
 #[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct Load{
@@ -123,7 +125,120 @@ pub struct EmailLoadData{
 }
 
 
+// -------------------DANFES SEQUENCE HOLDER--------------------------
+
+type LinkedListElement = RefCell<Option<Rc<Node>>>;
+type LinkedListElementBackwards = RefCell<Option<Weak<Node>>>;
+type DANFENumber = u128;
+
+#[derive(Debug)]
+pub struct Node{
+    pub value: DANFE,
+    value_number: DANFENumber,
+    pub next: LinkedListElement,
+    pub previous: LinkedListElementBackwards
+}
+
+#[derive(Debug)]
+pub struct LinkedList {
+    pub head: LinkedListElement,
+}
+
 // -------------------IMPLEMENTATIONS---------------------------------
+
+impl LinkedList {
+
+    fn add_head(&mut self, node:Node){
+        self.head = RefCell::new(Some(Rc::new(node)));
+    }
+
+    fn switch_head(&mut self, mut node:Node){
+
+        let old_head = self.head.borrow().clone();
+        if let Some(head) = old_head{ 
+            node.next = Some(Rc::clone(&head)).into();
+            let node_pointer = Rc::new(node);
+            *head.previous.borrow_mut() = Some(Rc::downgrade(&node_pointer)).into();
+            *self.head.borrow_mut() = Some(node_pointer).into(); 
+                                                                
+        }
+        else { return; } //return an error maybe
+    }
+
+    fn switch_tail(&mut self, last_node:&Rc<Node>,  mut node:Node){
+
+        node.previous = Some(Rc::downgrade(last_node)).into();
+        *last_node.next.borrow_mut() = Some(Rc::new(node)).into();
+    }
+
+    fn insert_middle(&mut self, middle_node:&Rc<Node>, mut node:Node){
+        node.previous = Some(Rc::downgrade(middle_node)).into();
+
+        let old_pointer_middle_node_next = middle_node.next.borrow().clone();
+        if let Some(middle_node_next) = &old_pointer_middle_node_next{
+            node.next = Some(Rc::clone(middle_node_next)).into();
+
+            let new_node_pointer = Rc::new(node);
+            *middle_node_next.previous.borrow_mut() = Some(Rc::downgrade(&new_node_pointer)).into();
+            *middle_node.next.borrow_mut() = Some(new_node_pointer).into();
+        }else{
+            let new_node_pointer = Rc::new(node);
+            *middle_node.next.borrow_mut() = Some(new_node_pointer).into();
+        }
+
+    }
+
+
+    pub fn add_between(&mut self, value:DANFE) -> Result<(), ParseErrors> {
+
+        let value_danfe_parsed = value.clone().as_str().parse::<u128>()?; 
+
+        let new_node = Node{
+            value: value.clone(),
+            value_number: value_danfe_parsed,
+            next: None.into(),
+            previous: None.into()
+        };
+        
+        let old_head = self.head.borrow().clone();
+        if let Some(head) = old_head {
+            if head.value_number > new_node.value_number{
+                self.switch_head(new_node);
+                return Ok(());
+            }
+
+            let mut current_node = head;
+            loop{
+                let current_node_next_ref = current_node.next.borrow().clone();
+                if let Some(next_node) = current_node_next_ref {
+                    
+                    if next_node.value_number > new_node.value_number {
+                        break;
+                    }
+
+                    current_node = next_node;
+                }else{
+                    self.switch_tail(&mut current_node, new_node);
+                    return Ok(());
+                }
+
+            }
+
+            self.insert_middle(&mut current_node, new_node);
+
+            
+
+        }else{
+            self.add_head(new_node);
+        }
+
+        Ok(())
+
+        
+    }
+
+}
+
 impl Load {
     pub fn update_load_delivery_data(&mut self){
         self.calculate_total_cubicage(); 
@@ -193,4 +308,90 @@ impl Load {
     }
 }
 
+#[cfg(test)]
+mod tests{
+    
+    use super::*;
+    
+    #[test]
+    fn test_linkedlist_add_head(){
+        let mut list = LinkedList{head:None.into()};
 
+        if let Some(_) = *list.head.borrow() {
+            panic!("Should be none");
+        }
+
+        let _ = list.add_between(String::from("12345"));
+        if let Some(data) = &*list.head.borrow(){
+            assert_eq!(data.value, String::from("12345"));
+        }
+    }
+
+    #[test]
+    fn test_linkedlist_switch_head(){
+        let mut list = LinkedList{head:None.into()};
+        let _ = list.add_between(String::from("12345"));
+        let _ = list.add_between(String::from("00001"));
+
+        if let Some(data) = &*list.head.borrow(){
+            assert_eq!(data.value, String::from("00001"));
+
+            if let Some(next) = &*data.next.borrow(){
+                assert_eq!(next.value, String::from("12345"));                
+
+                let None = &*next.next.borrow() else { panic!("Should have no more values") };
+                
+            }
+
+        }
+    }
+
+    #[test]
+    fn test_linkedlist_add_tail(){
+        let mut list = LinkedList{head:None.into()};
+        let _ = list.add_between(String::from("00001"));
+        let _ = list.add_between(String::from("12345"));
+
+        if let Some(data) = &*list.head.borrow(){
+            assert_eq!(data.value, String::from("00001"));
+
+            if let Some(next) = &*data.next.borrow(){
+                assert_eq!(next.value, String::from("12345"));                
+
+                let None = &*next.next.borrow() else { panic!("Should have no more values") };
+                
+            }
+
+        }
+
+    }
+
+
+    #[test]
+    fn test_linkedlist_add_in_the_middle(){
+        let mut list = LinkedList{head:None.into()};
+        let _ = list.add_between(String::from("00001"));
+        let _ = list.add_between(String::from("22345"));
+        let _ = list.add_between(String::from("12345"));
+
+        if let Some(data) = &*list.head.borrow(){
+            assert_eq!(data.value, String::from("00001"));
+
+            if let Some(next) = &*data.next.borrow(){
+                assert_eq!(next.value, String::from("12345"));                
+
+                if let Some(last) = &*next.next.borrow(){
+                    assert_eq!(last.value, String::from("22345"));                
+                }else{
+                    panic!("Should have the last value!");
+                }
+
+                
+            }
+
+                
+
+        }
+
+    }
+}
