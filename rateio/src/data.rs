@@ -86,6 +86,35 @@ mod tags{
 }
 
 
+pub mod text{
+    use crate::types::LoadNumber;
+
+    pub fn generate_email_text(loads:Vec<LoadNumber>) -> String{
+        if loads.len() <= 0{
+            return String::from("");
+        }
+
+
+        let mut text = String::from("Segue em anexo CT-e e MDF-e ");
+        if loads.len() > 1 {
+            let last_load_index = loads.len()-1;
+            let loads_concat = loads[..last_load_index]
+                                    .iter()
+                                    .map(|&v| v.to_string())
+                                    .collect::<Vec<String>>().join(", ");
+            text.push_str(format!("das cargas {} e {}.\n", loads_concat, loads[last_load_index]).as_str());
+        }
+        else {
+            text.push_str(format!("da carga {}.\n", loads[0]).as_str());
+        }
+        
+        text.push_str("att.");
+        
+        return text;
+    }
+}
+
+
 pub mod parsing{
     use std::collections::HashMap;
     use std::path::PathBuf;
@@ -384,6 +413,8 @@ pub mod parsing{
 }
 
 
+
+
 #[cfg(test)]
 mod tests{
     use std::collections::HashMap;
@@ -669,5 +700,28 @@ mod tests{
         assert_eq!(from_13_deliveries.cubicage,1.35);
 
 
+    }
+
+
+    #[test]
+    fn test_email_no_loads() {
+        let text = text::generate_email_text(vec![]);
+        assert_eq!(text,String::from(""));
+    }
+
+
+    #[test]
+    fn test_email_single_load() {
+        let text = text::generate_email_text(vec![1]);
+        assert_eq!(text,String::from("Segue em anexo CT-e e MDF-e da carga 1.\natt."));
+    }
+
+    #[test]
+    fn test_email_multiple_loads() {
+        let text = text::generate_email_text(vec![1,2]);
+        assert_eq!(text,String::from("Segue em anexo CT-e e MDF-e das cargas 1 e 2.\natt."));
+        
+        let text = text::generate_email_text(vec![1,2,3]);
+        assert_eq!(text,String::from("Segue em anexo CT-e e MDF-e das cargas 1, 2 e 3.\natt."));
     }
 }

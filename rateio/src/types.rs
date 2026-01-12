@@ -72,6 +72,7 @@ impl From<EncodingError> for ParseErrors {
 pub struct Packet{
     pub loads: Loads,
     pub errors: Vec<String>,
+    pub email: String,
 }
 
 // -------------------INTERMEDIATE OBJS-------------------------
