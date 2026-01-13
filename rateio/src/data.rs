@@ -706,23 +706,23 @@ mod tests{
 
     #[test]
     fn test_email_no_loads() {
-        let text = text::generate_email_text(vec![]);
+        let text = text::generate_email_text(&vec![]);
         assert_eq!(text,String::from(""));
     }
 
 
     #[test]
     fn test_email_single_load() {
-        let text = text::generate_email_text(vec![1]);
+        let text = text::generate_email_text(&vec![1]);
         assert_eq!(text,String::from("Segue em anexo CT-e e MDF-e da carga 1.\natt."));
     }
 
     #[test]
     fn test_email_multiple_loads() {
-        let text = text::generate_email_text(vec![1,2]);
+        let text = text::generate_email_text(&vec![1,2]);
         assert_eq!(text,String::from("Segue em anexo CT-e e MDF-e das cargas 1 e 2.\natt."));
         
-        let text = text::generate_email_text(vec![1,2,3]);
+        let text = text::generate_email_text(&vec![1,2,3]);
         assert_eq!(text,String::from("Segue em anexo CT-e e MDF-e das cargas 1, 2 e 3.\natt."));
     }
 }

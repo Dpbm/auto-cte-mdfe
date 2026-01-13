@@ -269,7 +269,7 @@ impl Load {
             delivery.price = value;
         }
 
-        self.deliveries[0].price = (self.total_price-irregular_total) + self.deliveries[0].price;
+        self.deliveries[0].price = round_price((self.total_price-irregular_total) + self.deliveries[0].price);
     }
 
     fn calculate_total_cubicage(&mut self){
@@ -435,7 +435,7 @@ mod tests{
     fn test_hashmap_get_loads_sequence(){
         let mut data = 
             LoadsDataByCarrier{
-
+                email: String::from(""),
                 loads:HashMap::from([
                     (4,Load{
                         deliveries: vec![
