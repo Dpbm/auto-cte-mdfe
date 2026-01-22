@@ -1,5 +1,6 @@
 info:
 	numero DANFE --> cobr -> fat -> nFat
+		     --> ide --> nNF
 	NOME/razao social -> dest -> xNome
 	transportadora -> transp -> transportadora -> xNome
 	carga numero -> infAdic -> infCpl

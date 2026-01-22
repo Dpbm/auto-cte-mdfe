@@ -43,6 +43,7 @@ mod tags{
     pub fn match_tag(tag_name:TagName, flags:&mut u8, backtrack:&mut u8) {
         match tag_name{
             DANFE_TAG => flags::update_flag(flags, DANFE_FLAG),
+            DANFE_TAG_SECOND => flags::update_flag(flags, DANFE_FLAG),
             LOAD_CUBICAGE_TAG => flags::update_flag(flags, LOAD_CUBICAGE_FLAG),
             RAZAO_SOCIAL_FIRST_TAG => flags::update_flag(backtrack, RAZAO_SOCIAL_BACKTRACK_FLAG),
             SHIPPING_COMPANY_FIRST_TAG => flags::update_flag(backtrack, SHIPPING_COMPANY_BACKTRACK_FLAG),
@@ -591,6 +592,20 @@ mod tests{
         let (data,errors) = parsing::parse_file(&correct_file_path)?; 
 
         assert_eq!(data.danfe, "12345");
+        assert_eq!(data.cubicage, 3.431);
+        assert_eq!(data.to, "test");
+        assert_eq!(data.by, "test3");
+        assert_eq!(data.quantity, 10000);
+        assert_eq!(data.load_number, 3245);
+        assert_eq!(data.key, "78493");
+
+
+        assert_eq!(errors.len(), 0);
+        
+        let correct_file_path = PathBuf::from("./test_data/correct_second_danfe_form.xml");
+        let (data,errors) = parsing::parse_file(&correct_file_path)?; 
+
+        assert_eq!(data.danfe, "28282828");
         assert_eq!(data.cubicage, 3.431);
         assert_eq!(data.to, "test");
         assert_eq!(data.by, "test3");

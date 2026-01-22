@@ -11,6 +11,7 @@ pub const RAZAO_SOCIAL_BACKTRACK_FLAG:u8 = 0b00000001;
 pub const SHIPPING_COMPANY_BACKTRACK_FLAG:u8 = 0b00000010;
 
 pub const DANFE_TAG:TagName = b"nFat";
+pub const DANFE_TAG_SECOND:TagName = b"nNF";
 pub const LOAD_CUBICAGE_TAG:TagName = b"infCpl";
 pub const QUANTITY_TAG:TagName = b"qVol";
 pub const ACCESS_KEY_TAG:TagName = b"chNFe";

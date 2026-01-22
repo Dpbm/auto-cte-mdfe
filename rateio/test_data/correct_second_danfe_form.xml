@@ -1,0 +1,23 @@
+<ide>
+	<nNF>28282828</nNF>
+</ide>
+<infCpl>
+	cubicagem 3,431 m3
+	carga 3245
+</infCpl>
+<qVol>
+	10000
+</qVol>
+<dest>
+	<xNome>
+		test
+	</xNome>
+</dest>
+<transporta>
+	<xNome>
+		test3
+	</xNome>
+</transporta>
+<chNFe>
+	78493
+</chNFe>
