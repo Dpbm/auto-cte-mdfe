@@ -268,7 +268,9 @@ pub mod parsing{
 
         let danfe = match tmp_data.get("danfe") {
             Some(value) => {
-                value.clone()
+                let mut danfe = value.clone();
+                fix_danfe(&mut danfe);
+                danfe
             },
             None => {
                 errors.push(String::from("No DANFE"));
@@ -344,6 +346,13 @@ pub mod parsing{
         Ok((all_data,errors))
     }
 
+    fn fix_danfe(danfe:&mut DANFE){
+        if danfe.starts_with("001000") {
+            return;
+        }
+        *danfe = String::from("001000") + danfe;
+    }
+
     pub fn concat_data(data:&MultipleData, email_data:&EmailData) -> (Loads, Vec<Error>){
         let mut loads = Loads::new();
         let mut errors = Vec::<Error>::new();
@@ -369,8 +378,10 @@ pub mod parsing{
 
                 if let Some(carrier_loads) = loads.get_mut(&d.by) { 
 
+                    let mut danfe = d.danfe.clone();
+                    fix_danfe(&mut danfe);
                     let delivery = Delivery {
-                        danfe: vec![d.danfe.clone()],
+                        danfe: vec![danfe],
                         key: vec![d.key.clone()],
                         to: d.to.clone(),
                         quantity: d.quantity,
@@ -591,7 +602,7 @@ mod tests{
         let correct_file_path = PathBuf::from("./test_data/correct.xml");
         let (data,errors) = parsing::parse_file(&correct_file_path)?; 
 
-        assert_eq!(data.danfe, "12345");
+        assert_eq!(data.danfe, "00100012345");
         assert_eq!(data.cubicage, 3.431);
         assert_eq!(data.to, "test");
         assert_eq!(data.by, "test3");
@@ -605,7 +616,7 @@ mod tests{
         let correct_file_path = PathBuf::from("./test_data/correct_second_danfe_form.xml");
         let (data,errors) = parsing::parse_file(&correct_file_path)?; 
 
-        assert_eq!(data.danfe, "28282828");
+        assert_eq!(data.danfe, "00100028282828");
         assert_eq!(data.cubicage, 3.431);
         assert_eq!(data.to, "test");
         assert_eq!(data.by, "test3");
@@ -657,6 +668,18 @@ mod tests{
                  key: String::from("1234")
              }
             ]),
+            (30, vec![
+             Data{
+                 danfe: String::from("0010001212"),
+                 to: String::from("2"),
+                 by: String::from("14"),
+                 quantity: 100,
+                 load_number:20,
+                 cubicage: 1.35,
+                 key: String::from("1234")
+             }
+            ]),
+
         ]); 
         
         let email = HashMap::from([
@@ -665,6 +688,10 @@ mod tests{
                 license_plate: String::from("bbbd"),
             }),
             (20,EmailLoadData{
+                price: 200.0,
+                license_plate: String::from("ddda")
+            }),
+            (30,EmailLoadData{
                 price: 200.0,
                 license_plate: String::from("ddda")
             })
@@ -688,7 +715,7 @@ mod tests{
         let from_12_deliveries = &from_12.deliveries[0];
         assert_eq!(from_12_deliveries.danfe.len(),1);
         assert_eq!(from_12_deliveries.key.len(),1);
-        assert_eq!(from_12_deliveries.danfe[0],"123");
+        assert_eq!(from_12_deliveries.danfe[0],"001000123");
         assert_eq!(from_12_deliveries.key[0],"123");
         assert_eq!(from_12_deliveries.to,"1");
         assert_eq!(from_12_deliveries.quantity,10);
@@ -708,12 +735,32 @@ mod tests{
         let from_13_deliveries = &from_13.deliveries[0];
         assert_eq!(from_13_deliveries.danfe.len(),1);
         assert_eq!(from_13_deliveries.key.len(),1);
-        assert_eq!(from_13_deliveries.danfe[0],"1235");
+        assert_eq!(from_13_deliveries.danfe[0],"0010001235");
         assert_eq!(from_13_deliveries.key[0],"1234");
         assert_eq!(from_13_deliveries.to,"2");
         assert_eq!(from_13_deliveries.quantity,100);
         assert_eq!(from_13_deliveries.price,200.0);
         assert_eq!(from_13_deliveries.cubicage,1.35);
+        
+        let from_14 = result.get("14").unwrap().loads.get(&30).unwrap();
+        let from_14_seq = &result.get("14").unwrap().sequence;
+        assert_eq!(from_14_seq[0], 30);
+        assert_eq!(from_14_seq.len(), 1);
+
+        assert_eq!(from_14.license_plate, "ddda");
+        assert_eq!(from_14.total_price, 200.0);
+        assert_eq!(from_14.total_cubicage, 1.35);
+        assert_eq!(from_14.deliveries.len(), 1);
+
+        let from_14_deliveries = &from_14.deliveries[0];
+        assert_eq!(from_14_deliveries.danfe.len(),1);
+        assert_eq!(from_14_deliveries.key.len(),1);
+        assert_eq!(from_14_deliveries.danfe[0],"0010001212");
+        assert_eq!(from_14_deliveries.key[0],"1234");
+        assert_eq!(from_14_deliveries.to,"2");
+        assert_eq!(from_14_deliveries.quantity,100);
+        assert_eq!(from_14_deliveries.price,200.0);
+        assert_eq!(from_14_deliveries.cubicage,1.35);
 
 
     }
