@@ -291,7 +291,7 @@ impl Load {
             match names.get(&delivery.to){
                 Some(value) => {
                     let first_delivery = &mut new_data[*value];
-                    first_delivery.price += delivery.price;
+                    first_delivery.price = round_price(first_delivery.price + delivery.price);
                     first_delivery.quantity += delivery.quantity;
                     first_delivery.cubicage += delivery.cubicage;
 
