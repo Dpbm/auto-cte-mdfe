@@ -10,9 +10,8 @@ use serde::{Serialize};
 use log::error;
 
 use rateio::data::parsing::{parse_multiple, parse_email, concat_data};
-use rateio::data::text::generate_email_text;
 use rateio::files::get_xml_files;
-use rateio::types::{Packet,LoadNumber};
+use rateio::types::Packet;
 
 type PortNumber = u16;
 
