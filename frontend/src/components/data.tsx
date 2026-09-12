@@ -1,4 +1,4 @@
-import type { LoadData, RateioData, Delivery } from '@customTypes/api_data';
+import type { LoadData, RateioData, Delivery, LoadsByNumber } from '@customTypes/api_data';
 
 import { copyToClipboard } from "../utils/clipboard"
 import { useState } from 'react';
@@ -12,9 +12,21 @@ type DataTableProps = {
 	deliveries: Delivery[],
 };
 
+type CarrierDataProps = {
+	carrier:string;
+	emailText: string;
+	sequence:number[];
+	loadsData:LoadsByNumber;
+
+}
+
 function fixPrice(price:number):string{
 	return price.toFixed(2).toString().replaceAll(".",",");
 }
+
+const DEFAULT_ADVANCE = 0.7;
+const DEFAULT_BALANCE = 0.3;
+const DEFAULT_PAY = 1 - 0.25;
 
 
 const DataTable = ({
@@ -82,6 +94,77 @@ const DataTable = ({
 	</table>
 };
 
+const CarrierData = ({carrier,emailText,sequence,loadsData}:CarrierDataProps) => {
+	const [advance,setAdvance] = useState<number>(DEFAULT_ADVANCE);
+	const [balance,setBalance] = useState<number>(DEFAULT_BALANCE);
+	const [pay,setPay] = useState<number>(DEFAULT_PAY);
+
+	return <li key={carrier}>
+		<h1 className="text-3xl sticky top-0 bg-white mb-5">Cargas - {carrier}</h1>
+		<pre className="text-xs italic cursor-copy mb-5" onClick={() => copyToClipboard(emailText)}>{emailText}</pre>
+
+		<div>
+			<label htmlFor="advance" >Porcentagem Adiantamento: </label>
+			<input 
+				type="number" 
+				name="advance"
+				min={0.1} 
+				max={1} 
+				step={0.1}
+				defaultValue={DEFAULT_ADVANCE} 
+				value={advance} 
+				onChange={(e) => setAdvance(Number(e.target.value))} />
+			
+			<label htmlFor="balance" >Porcentagem Balance: </label>
+			<input 
+				type="number" 
+				name="balance"
+				min={0.1} 
+				max={1} 
+				step={0.1}
+				defaultValue={DEFAULT_BALANCE} 
+				value={balance} 
+				onChange={(e) => setBalance(Number(e.target.value))} />
+
+			<label htmlFor="pay">Porcentagem Valor do Motorista: </label>
+			<input 
+				type="number" 
+				name="pay"
+				min={0.1} 
+				max={1} 
+				step={0.1}
+				defaultValue={DEFAULT_PAY} 
+				value={pay} 
+				onChange={(e) => setPay(Number(e.target.value))} />
+		</div>
+
+		{(sequence.length <= 0) ? 
+			<p className="text-red-700 mb-10">Nenhum dado para a transportadora!</p> :
+
+			sequence.map((loadNumber) => {
+				const loadData = loadsData[loadNumber];
+				const deliveries = loadData.deliveries;
+
+				const valueForDriverRaw = loadData.total_price * pay;
+				const valueForDriver = fixPrice(valueForDriverRaw)
+				const valueAdvance = fixPrice(valueForDriverRaw * advance);
+				const valueBalance = fixPrice(valueForDriverRaw * balance);
+
+				return <div key={loadNumber} className="p-5 mb-10 ">
+					<header className="mb-5">
+						<h1 className="text-xl bold">Carga {String(loadNumber)}</h1>
+						<h2 className="text-xs italic">{loadData.license_plate.toUpperCase()} - R$ {fixPrice(loadData.total_price)} - {loadData.total_cubicage}</h2>
+						<h3 className="text-md italic" onClick={() => copyToClipboard(valueForDriver)}>Para o Motorista: {valueForDriver}</h3>
+						<h4 className="text-md italic" onClick={() => copyToClipboard(valueAdvance)}>Adiantamento: {valueAdvance}</h4>
+						<h5 className="text-xs italic">Saldo: {valueBalance}</h5>
+					</header>
+					<DataTable deliveries={deliveries}/>
+
+				</div>;
+			})}
+		</li>;
+}
+
 export const DataShow = ({data,error}:DataShowProps) => {
   if(error) return <p className="text-4xl text-red-600 p-10">Erro: {error}</p>;
 
@@ -95,33 +178,11 @@ export const DataShow = ({data,error}:DataShowProps) => {
 
   return <div className="p-5 h-full">
 		<ul className="max-h-3/4 min-h-3/4 overflow-scroll">{
-		  carriers.map((carrier) => {
-			const {loads:LoadsData, sequence, email} = loads[carrier];
-
-			return <li key={carrier}>
-				<h1 className="text-3xl sticky top-0 bg-white mb-5">Cargas - {carrier}</h1>
-				<pre className="text-xs italic cursor-copy mb-5" onClick={() => copyToClipboard(email)}>{email}</pre>
-
-				{(sequence.length <= 0) ? 
-					<p className="text-red-700 mb-10">Nenhum dado para a transportadora!</p> :
-
-					sequence.map((loadNumber) => {
-						const loadData = LoadsData[loadNumber];
-						const deliveries = loadData.deliveries;
-
-						return <div key={loadNumber} className="p-5 mb-10 ">
-							<header className="mb-5">
-								<h1 className="text-xl bold">Carga {String(loadNumber)}</h1>
-								<h2 className="text-xs italic">{loadData.license_plate.toUpperCase()} - R$ {fixPrice(loadData.total_price)} - {loadData.total_cubicage}</h2>
-							</header>
-							<DataTable deliveries={deliveries}/>
-
-						</div>;
-					})}
-				</li>;
-			})
-		  
-		  }</ul>
+		  carriers.map((carrier:string) => {
+			const {loads:loadsData, sequence, email} = loads[carrier];
+			return <CarrierData loadsData={loadsData} emailText={email} sequence={sequence} carrier={carrier} />;
+		  })}
+		</ul>
 
 	  <footer className="max-h-1/4 overflow-scroll">
 		  <h1 className="text-2xl text-red-500 sticky top-0 bg-white">Erros durante o rateio</h1>
