@@ -17,7 +17,10 @@ type CarrierDataProps = {
 	emailText: string;
 	sequence:number[];
 	loadsData:LoadsByNumber;
+}
 
+type CIOTValuesProps = {
+	[loadNumber:number]: number;
 }
 
 function fixPrice(price:number):string{
@@ -99,6 +102,8 @@ const CarrierData = ({carrier,emailText,sequence,loadsData}:CarrierDataProps) =>
 	const [balance,setBalance] = useState<number>(DEFAULT_BALANCE);
 	const [pay,setPay] = useState<number>(DEFAULT_PAY);
 
+	const [CIOTValues, setCIOTValues] = useState<CIOTValuesProps>({});
+
 	return <li key={carrier}>
 		<h1 className="text-3xl sticky top-0 bg-white mb-5">Cargas - {carrier}</h1>
 		<pre className="text-xs italic cursor-copy mb-5" onClick={() => copyToClipboard(emailText)}>{emailText}</pre>
@@ -145,7 +150,7 @@ const CarrierData = ({carrier,emailText,sequence,loadsData}:CarrierDataProps) =>
 				const loadData = loadsData[loadNumber];
 				const deliveries = loadData.deliveries;
 
-				const valueForDriverRaw = loadData.total_price * pay;
+				const valueForDriverRaw = CIOTValues[loadNumber] || loadData.total_price * pay;
 				const valueForDriver = fixPrice(valueForDriverRaw)
 				const valueAdvance = fixPrice(valueForDriverRaw * advance);
 				const valueBalance = fixPrice(valueForDriverRaw * balance);
@@ -157,6 +162,17 @@ const CarrierData = ({carrier,emailText,sequence,loadsData}:CarrierDataProps) =>
 						<h3 className="text-md italic" onClick={() => copyToClipboard(valueForDriver)}>Para o Motorista: {valueForDriver}</h3>
 						<h4 className="text-md italic" onClick={() => copyToClipboard(valueAdvance)}>Adiantamento: {valueAdvance}</h4>
 						<h5 className="text-xs italic">Saldo: {valueBalance}</h5>
+
+						<div>
+							<label htmlFor="ciot">Valor CIOT: </label>
+							<input 
+								type="number" 
+								name="ciot"
+								min={0} 
+								max={10000} 
+								step={0.1}
+								onChange={(e) => setCIOTValues({...CIOTValues, [loadNumber]:Number(e.target.value)})} />
+						</div>
 					</header>
 					<DataTable deliveries={deliveries}/>
 
