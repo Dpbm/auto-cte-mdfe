@@ -13,7 +13,7 @@ type DataTableProps = {
 };
 
 function fixPrice(price:number):string{
-	return price.toString().replaceAll(".",",");
+	return price.toFixed(2).toString().replaceAll(".",",");
 }
 
 
